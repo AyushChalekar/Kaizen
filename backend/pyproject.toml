@@ -1,0 +1,15 @@
+[project]
+name = "healthcare-backend"
+version = "0.1.0"
+description = "Predictive Resource Optimization System Backend"
+dependencies = [
+    "fastapi>=0.110.0",
+    "uvicorn>=0.28.0",
+    "simpy>=4.1.1",
+    "pandas>=2.2.0",
+    "numpy>=1.26.0",
+    "xgboost>=2.0.0",
+    "lightgbm>=4.3.0",
+    "pulp>=2.8.0",
+]
+requires-python = ">=3.10"
