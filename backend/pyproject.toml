@@ -8,7 +8,6 @@ dependencies = [
     "simpy>=4.1.1",
     "pandas>=2.2.0",
     "numpy>=1.26.0",
-    "xgboost>=2.0.0",
     "lightgbm>=4.3.0",
     "pulp>=2.8.0",
 ]
