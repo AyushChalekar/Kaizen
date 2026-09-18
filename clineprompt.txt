@@ -1,0 +1,27 @@
+# cline_prompt.txt
+Act as a senior software architect. Analyze and reorganize the directory structure of this monorepo ("kaizen") to maintain a clean separation between full-stack services and machine learning assets.
+
+Current State:
+- Monorepo containing `frontend/`, `backend/`, root-level `data/`, and root-level `outputs/`.
+- `backend/` already contains subdirectories for `models/`, `outputs/`, `scripts/`, and `src/`.
+- Root has orphaned `outputs/` and `data/` folders alongside 15 ML model training/evaluation scripts.
+
+Tasks:
+1. Discovery & Inventory:
+   - Run a search for all ML scripts (*.py) outside `backend/.venv/`.
+   - List the scripts, identifying which ones are standalone training pipelines, inference modules, or feature engineering utilities.
+   - Inspect data references and output save paths in each script.
+
+2. Structure Reorganization:
+   - Propose a consolidated structure before making moves. Consolidate ML scripts and datasets under a unified domain (e.g., inside `backend/ml/` or `backend/scripts/` and `backend/data/`), resolving the duplicate `outputs/` directories between root and `backend/outputs/`.
+   - Use `git mv` for all file relocations to preserve commit history.
+   - Ensure `backend/.venv/` remains untouched.
+
+3. Path & Import Fixes:
+   - Update all hardcoded relative file paths in the 15 ML scripts pointing to `synthetic_hourly_census.csv`, `synthetic_patient_stays_100k_fixed.csv`, and metrics/prediction output destinations.
+   - Standardize path resolution using `pathlib.Path(__file__).resolve()` to prevent runtime path breakages.
+
+4. Verification & Git Commit:
+   - Verify that python files still execute imports without syntax or file-not-found errors.
+   - Adhere to `.clinerules`: Make atomic git commits for each logical change (e.g., moving data, moving scripts, path refactoring).
+   - Do not use `sudo` with docker commands if container tasks arise.
