@@ -16,3 +16,6 @@ dependencies = [
     "matplotlib>=3.10.9",
 ]
 requires-python = ">=3.10"
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
