@@ -1,4 +1,3 @@
-# backend/src/simulation/engine.py
 import pandas as pd
 import simpy
 from datetime import datetime, timedelta
