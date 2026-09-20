@@ -1,7 +1,7 @@
 import argparse
 import os
 from datetime import datetime
-from simulation.engine import HospitalDigitalTwinEngine
+from src.simulation.engine import HospitalDigitalTwinEngine
 
 def run_pipeline(output_dir: str, stays: int, hours: int, seed: int):
     print(f"Starting PROSH simulation ({stays} stays over {hours} hours)...")
