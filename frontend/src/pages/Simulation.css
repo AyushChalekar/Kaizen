@@ -1,0 +1,264 @@
+.simulation-page {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.sim-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1.5rem;
+  border-radius: 30px;
+}
+
+.control-btn {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.control-btn:hover {
+  color: #f8fafc;
+}
+
+.play-pause {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #f8fafc;
+}
+
+.play-pause:hover {
+  background: rgba(59, 130, 246, 0.2);
+  border-color: #3b82f6;
+}
+
+.play-pause.playing {
+  background: rgba(16, 185, 129, 0.2);
+  border-color: #10b981;
+}
+
+.speed-indicator {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #3b82f6;
+  min-width: 60px;
+  text-align: center;
+}
+
+.sim-canvas {
+  height: 500px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.pipeline-container {
+  width: 100%;
+  max-width: 800px;
+  height: 400px;
+  position: relative;
+}
+
+/* Nodes */
+.node {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  z-index: 10;
+  width: 100px;
+}
+
+.node span {
+  font-weight: 600;
+  color: #f8fafc;
+  text-align: center;
+  font-size: 0.875rem;
+}
+
+.node-stats {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+}
+
+.node-icon {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  border: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+.bg-red { background: linear-gradient(135deg, #ef4444, #b91c1c); }
+.bg-green { background: linear-gradient(135deg, #10b981, #047857); }
+
+/* Node Positioning */
+.node-arrival { top: 160px; left: 0; }
+.node-triage { top: 160px; left: 200px; }
+.node-ward { top: 80px; left: 450px; }
+.node-icu { top: 240px; left: 450px; }
+.node-discharge { top: 160px; right: 0; }
+
+/* Paths & Particles */
+.path {
+  position: absolute;
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  z-index: 1;
+}
+
+.particle {
+  width: 10px;
+  height: 10px;
+  background-color: #3b82f6;
+  border-radius: 50%;
+  position: absolute;
+  top: -6px;
+  left: 0;
+  box-shadow: 0 0 10px #3b82f6;
+  opacity: 0;
+}
+
+.particle.alert {
+  background-color: #ef4444;
+  box-shadow: 0 0 10px #ef4444;
+}
+
+.delay-1 { animation-delay: 1.5s !important; }
+.delay-2 { animation-delay: 3s !important; }
+
+/* Path dimensions and animations */
+.path-arrival-triage {
+  top: 190px; left: 100px; width: 100px; height: 0;
+}
+.animating .path-arrival-triage .particle {
+  animation: moveHorizontal var(--sim-speed, 2s) linear infinite;
+}
+
+.path-triage-ward {
+  top: 110px; left: 300px; width: 150px; height: 80px;
+  border-bottom: none; border-right: none;
+  border-radius: 20px 0 0 0;
+}
+.animating .path-triage-ward .particle {
+  animation: moveCurveUp var(--sim-speed, 2s) linear infinite;
+}
+
+.path-triage-icu {
+  top: 190px; left: 300px; width: 150px; height: 80px;
+  border-top: none; border-right: none;
+  border-radius: 0 0 0 20px;
+}
+.animating .path-triage-icu .particle {
+  animation: moveCurveDown var(--sim-speed, 2s) linear infinite;
+}
+
+.path-ward-discharge {
+  top: 110px; left: 550px; width: 150px; height: 80px;
+  border-bottom: none; border-left: none;
+  border-radius: 0 20px 0 0;
+}
+.animating .path-ward-discharge .particle {
+  animation: moveCurveDownRight var(--sim-speed, 2s) linear infinite;
+}
+
+.path-icu-ward {
+  top: 140px; left: 500px; width: 0; height: 100px;
+}
+.animating .path-icu-ward .particle {
+  animation: moveVerticalUp var(--sim-speed, 2s) linear infinite;
+}
+
+.paused .particle {
+  animation-play-state: paused !important;
+  opacity: 0.5;
+}
+
+@keyframes moveHorizontal {
+  0% { transform: translateX(0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateX(100px); opacity: 0; }
+}
+
+@keyframes moveCurveUp {
+  0% { transform: translate(0, 80px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate(150px, 0); opacity: 0; }
+}
+
+@keyframes moveCurveDown {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate(150px, 80px); opacity: 0; }
+}
+
+@keyframes moveCurveDownRight {
+  0% { transform: translate(0, 0); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translate(150px, 80px); opacity: 0; }
+}
+
+@keyframes moveVerticalUp {
+  0% { transform: translateY(100px); opacity: 0; }
+  10% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(0); opacity: 0; }
+}
+
+.sim-details {
+  display: grid;
+  grid-template-columns: 1fr;
+}
+
+.detail-panel {
+  padding: 1.5rem;
+}
+
+.detail-panel h3 {
+  margin-top: 0;
+  color: #f8fafc;
+}
+
+.sim-params {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+
+.sim-params li {
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.sim-params strong {
+  color: #e2e8f0;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.status-live { color: #10b981; font-weight: 600; }
+.status-paused { color: #f59e0b; font-weight: 600; }
