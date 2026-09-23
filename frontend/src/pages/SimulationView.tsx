@@ -1,12 +1,13 @@
 // src/pages/SimulationView.tsx
 import React, { useState, useEffect } from 'react';
-import './SimulationView.css';
 
 interface SimulationConfig {
   duration_hours: number;
   ed_capacity: number;
   ward_capacity: number;
   icu_capacity: number;
+  nurse_staffing_multiplier: number;
+  doctor_staffing_multiplier: number;
   seed: number;
 }
 
@@ -60,10 +61,67 @@ interface SimulationData {
   hourly_census: HourlyCensus[];
 }
 
+interface ScenarioPreset {
+  id: string;
+  label: string;
+  description: string;
+  isBaseline?: boolean;
+  payload: {
+    duration_hours: number;
+    ed_capacity: number;
+    ward_capacity: number;
+    icu_capacity: number;
+    nurse_staffing_multiplier: number;
+    doctor_staffing_multiplier: number;
+    seed: number;
+  };
+}
+
+const SCENARIOS: ScenarioPreset[] = [
+  {
+    id: 'baseline',
+    label: 'Baseline — Standard 24h Operations',
+    description: 'Full bed capacity (ED 50 / Ward 150 / ICU 30) and full staffing.',
+    isBaseline: true,
+    payload: { duration_hours: 24, ed_capacity: 50, ward_capacity: 150, icu_capacity: 30, nurse_staffing_multiplier: 1.0, doctor_staffing_multiplier: 1.0, seed: 42 },
+  },
+  {
+    id: 'icu-bed-shortage',
+    label: 'Test Case 1 — ICU Bed Shortage',
+    description: 'ICU capacity cut to 8 beds (from 30). Ward, ED, and staffing unaffected.',
+    payload: { duration_hours: 24, ed_capacity: 50, ward_capacity: 150, icu_capacity: 8, nurse_staffing_multiplier: 1.0, doctor_staffing_multiplier: 1.0, seed: 101 },
+  },
+  {
+    id: 'ward-bed-shortage',
+    label: 'Test Case 2 — General Ward Bed Shortage',
+    description: 'Ward capacity cut to 50 beds (from 150). ICU, ED, and staffing unaffected.',
+    payload: { duration_hours: 24, ed_capacity: 50, ward_capacity: 50, icu_capacity: 30, nurse_staffing_multiplier: 1.0, doctor_staffing_multiplier: 1.0, seed: 102 },
+  },
+  {
+    id: 'doctor-shortage',
+    label: 'Test Case 3 — Doctor Staffing Shortage',
+    description: 'Active doctors per shift cut to ~30% of baseline. Bed capacity is unchanged, but reduced staffing slows down patient care, which can still cause bed occupancy and queueing to rise.',
+    payload: { duration_hours: 24, ed_capacity: 50, ward_capacity: 150, icu_capacity: 30, nurse_staffing_multiplier: 1.0, doctor_staffing_multiplier: 0.3, seed: 103 },
+  },
+  {
+    id: 'nurse-shortage',
+    label: 'Test Case 4 — Nurse Staffing Shortage',
+    description: 'Active nurses per shift cut to ~40% of baseline. Bed capacity is unchanged, but reduced staffing slows down patient care, which can still cause bed occupancy and queueing to rise.',
+    payload: { duration_hours: 24, ed_capacity: 50, ward_capacity: 150, icu_capacity: 30, nurse_staffing_multiplier: 0.4, doctor_staffing_multiplier: 1.0, seed: 104 },
+  },
+  {
+    id: 'compound-crisis',
+    label: 'Test Case 5 — Compound Resource Crisis',
+    description: 'Simultaneous bed AND staffing shortage across ED, Ward, ICU, doctors and nurses (mass-casualty style surge).',
+    payload: { duration_hours: 24, ed_capacity: 25, ward_capacity: 80, icu_capacity: 10, nurse_staffing_multiplier: 0.5, doctor_staffing_multiplier: 0.5, seed: 105 },
+  },
+];
+
 export function SimulationView() {
   const [data, setData] = useState<SimulationData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedScenarioId, setSelectedScenarioId] = useState<string>('baseline');
 
   const fetchSimulation = async (endpoint: string, method: string = 'GET', body?: any) => {
     setLoading(true);
@@ -91,18 +149,14 @@ export function SimulationView() {
     fetchSimulation('/api/simulation/data?include_stays=true');
   }, []);
 
-  const runStressTest = () => {
-    fetchSimulation('/api/simulation/run', 'POST', {
-      duration_hours: 24,
-      ed_capacity: 30, // Bottlenecked ED
-      ward_capacity: 100, // Reduced Ward
-      icu_capacity: 15, // Reduced ICU
-      seed: 99
-    });
-  };
-
-  const runBaseline = () => {
-    fetchSimulation('/api/simulation/reset', 'POST');
+  const runSelectedScenario = () => {
+    const scenario = SCENARIOS.find((s) => s.id === selectedScenarioId);
+    if (!scenario) return;
+    if (scenario.isBaseline) {
+      fetchSimulation('/api/simulation/reset', 'POST');
+    } else {
+      fetchSimulation('/api/simulation/run', 'POST', scenario.payload);
+    }
   };
 
   if (loading) return <div className="sim-container loading">Executing Discrete-Event Simulation...</div>;
@@ -111,15 +165,289 @@ export function SimulationView() {
 
   return (
     <div className="sim-container">
+      <style dangerouslySetInnerHTML={{ __html: `
+/* src/pages/Simulation.css */
+.sim-container {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 2rem;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.sim-container.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #38bdf8;
+}
+
+.sim-container.error {
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sim-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  color: #f8fafc;
+}
+
+.timestamp {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.sim-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.sim-actions button {
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.sim-actions button:hover {
+  opacity: 0.9;
+}
+
+.scenario-select {
+  background-color: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #475569;
+  border-radius: 4px;
+  padding: 0.55rem 0.8rem;
+  font-family: inherit;
+  font-size: 0.9rem;
+  min-width: 320px;
+}
+
+.btn-run-scenario {
+  background-color: #b91c1c;
+}
+
+.scenario-description {
+  margin: 0.5rem 0 1.5rem 0;
+  font-size: 0.85rem;
+  color: #94a3b8;
+  font-style: italic;
+}
+
+.config-panel {
+  background-color: #1e293b;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-panel h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.config-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.config-item label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.config-item span {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-box {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  padding: 1.25rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-box label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.metric-box span {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.data-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.data-panel {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-panel h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  color: #f1f5f9;
+}
+
+.panel-desc {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #334155;
+  border-radius: 4px;
+}
+
+.max-h-500 {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+
+th {
+  background-color: #0f172a;
+  color: #cbd5e1;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+tr:hover {
+  background-color: #334155;
+}
+
+.row-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.truncate {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-success { color: #4ade80 !important; }
+.text-danger { color: #f87171 !important; }
+.font-bold { font-weight: 700; }
+
+/* Custom Scrollbar for inner tables */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: #0f172a; 
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #475569; 
+}
+      ` }} />
       <div className="sim-header">
         <div>
           <h1>Backend Capability Validation Dashboard</h1>
           <p className="timestamp">Generated: {new Date(data.generated_at).toLocaleString()}</p>
         </div>
         <div className="sim-actions">
-          <button className="btn-baseline" onClick={runBaseline}>Run Baseline (24h)</button>
-          <button className="btn-stress" onClick={runStressTest}>Run Resource Stress Test</button>
+          <select
+            className="scenario-select"
+            value={selectedScenarioId}
+            onChange={(e) => setSelectedScenarioId(e.target.value)}
+            aria-label="Select simulation test case"
+          >
+            {SCENARIOS.map((s) => (
+              <option key={s.id} value={s.id}>{s.label}</option>
+            ))}
+          </select>
+          <button className="btn-run-scenario" onClick={runSelectedScenario}>
+            Run Selected Test Case
+          </button>
         </div>
+        <p className="scenario-description">
+          {SCENARIOS.find((s) => s.id === selectedScenarioId)?.description}
+        </p>
       </div>
 
       {/* Active Conditions Panel */}
@@ -141,6 +469,14 @@ export function SimulationView() {
           <div className="config-item">
             <label>ICU Capacity</label>
             <span>{data.config.icu_capacity} beds</span>
+          </div>
+          <div className="config-item">
+            <label>Doctor Staffing</label>
+            <span>{Math.round(data.config.doctor_staffing_multiplier * 100)}%</span>
+          </div>
+          <div className="config-item">
+            <label>Nurse Staffing</label>
+            <span>{Math.round(data.config.nurse_staffing_multiplier * 100)}%</span>
           </div>
           <div className="config-item">
             <label>RNG Seed</label>

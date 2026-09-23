@@ -81,6 +81,20 @@ class SimulationRunRequest(BaseModel):
         default=42,
         description="Random number generator seed for deterministic reproducibility.",
     )
+    nurse_staffing_multiplier: float = Field(
+        default=1.0,
+        ge=0.2,
+        le=1.0,
+        description="Multiplier applied to baseline nurse staffing per shift "
+                    "(1.0 = full staffing, lower values simulate a shortage).",
+    )
+    doctor_staffing_multiplier: float = Field(
+        default=1.0,
+        ge=0.2,
+        le=1.0,
+        description="Multiplier applied to baseline doctor staffing per shift "
+                    "(1.0 = full staffing, lower values simulate a shortage).",
+    )
     start_datetime: datetime = Field(
         default_factory=lambda: DEFAULT_START_DATETIME,
         description="Anchor datetime representing simulation clock start.",
@@ -173,6 +187,8 @@ async def _run_and_update_cache(
             ward_capacity=request.ward_capacity,
             icu_capacity=request.icu_capacity,
             seed=request.seed,
+            nurse_staffing_multiplier=request.nurse_staffing_multiplier,
+            doctor_staffing_multiplier=request.doctor_staffing_multiplier,
         )
     except ValueError as exc:
         raise HTTPException(

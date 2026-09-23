@@ -38,18 +38,18 @@ const SHIFT_BASELINES: Record<ShiftType, { nurses: number; doctors: number }> = 
 // ---------------------------------------------------------------------------
 function getUtilizationColor(pct: number): { bg: string; text: string; label: string } {
   if (pct >= 90.0) {
-    return { bg: "#dc2626", text: "#fef2f2", label: "Critical" };
+    return { bg: "#ef4444", text: "#450a0a", label: "Critical" };
   }
   if (pct >= 80.0) {
-    return { bg: "#d97706", text: "#fffbeb", label: "Warning" };
+    return { bg: "#d97706", text: "#451a03", label: "Warning" };
   }
-  return { bg: "#16a34a", text: "#f0fdf4", label: "Optimal" };
+  return { bg: "#4ade80", text: "#052e16", label: "Optimal" };
 }
 
 function getEsiBadgeStyle(acuity: number): { bg: string; text: string } {
   switch (acuity) {
     case 1:
-      return { bg: "#dc2626", text: "#ffffff" }; // Resuscitation (Red)
+      return { bg: "#ef4444", text: "#ffffff" }; // Resuscitation (Red)
     case 2:
       return { bg: "#ea580c", text: "#ffffff" }; // Emergent (Orange)
     case 3:
@@ -58,7 +58,7 @@ function getEsiBadgeStyle(acuity: number): { bg: string; text: string } {
       return { bg: "#2563eb", text: "#ffffff" }; // Less Urgent (Blue)
     case 5:
     default:
-      return { bg: "#16a34a", text: "#ffffff" }; // Non-Urgent (Green)
+      return { bg: "#4ade80", text: "#ffffff" }; // Non-Urgent (Green)
   }
 }
 
@@ -83,7 +83,7 @@ const SkeletonBlock: React.FC<SkeletonBlockProps> = ({
     style={{
       height,
       width,
-      backgroundColor: "#e2e8f0",
+      backgroundColor: "#334155",
       borderRadius: "0.375rem",
       ...style,
     }}
@@ -91,7 +91,7 @@ const SkeletonBlock: React.FC<SkeletonBlockProps> = ({
 );
 
 const DashboardSkeleton: React.FC = () => (
-  <div style={{ padding: "1.5rem", maxWidth: "1600px", margin: "0 auto", color: "#1e293b" }}>
+  <div style={{ padding: "1.5rem", maxWidth: "1600px", margin: "0 auto", color: "#f1f5f9" }}>
     <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "1.5rem" }}>
       <SkeletonBlock height="2.5rem" width="300px" />
       <SkeletonBlock height="2.5rem" width="220px" />
@@ -170,31 +170,31 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
       {/* 4h Prescriptive Arrivals */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#1e293b",
           borderRadius: "0.5rem",
           padding: "1rem 1.25rem",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #334155",
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>
           Prescriptive Influx (4-Hour)
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginTop: "0.25rem" }}>
-          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a" }}>
+          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f8fafc" }}>
             +{Math.round(projected4h)}
           </span>
           <span
             style={{
               fontSize: "0.875rem",
               fontWeight: 600,
-              color: isUpwardTrend ? "#dc2626" : "#16a34a",
+              color: isUpwardTrend ? "#ef4444" : "#4ade80",
             }}
           >
             {isUpwardTrend ? "[^] High Influx" : "[v] Stable Flow"}
           </span>
         </div>
-        <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.25rem" }}>
+        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.25rem" }}>
           Next 4h projected arrivals ({projectedHourlyAverage.toFixed(1)}/hr)
         </div>
       </div>
@@ -202,18 +202,18 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
       {/* Average Length of Stay */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#1e293b",
           borderRadius: "0.5rem",
           padding: "1rem 1.25rem",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #334155",
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>
           Projected Mean LoS
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginTop: "0.25rem" }}>
-          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a" }}>
+          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f8fafc" }}>
             {metrics.average_los_hours.toFixed(1)}h
           </span>
           <span
@@ -222,14 +222,14 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
               fontWeight: 600,
               padding: "0.15rem 0.4rem",
               borderRadius: "0.25rem",
-              backgroundColor: overallLosDelta > 0 ? "#fef2f2" : "#f0fdf4",
-              color: overallLosDelta > 0 ? "#b91c1c" : "#15803d",
+              backgroundColor: overallLosDelta > 0 ? "#450a0a" : "#052e16",
+              color: overallLosDelta > 0 ? "#fca5a5" : "#86efac",
             }}
           >
             {overallLosDelta >= 0 ? `+${overallLosDelta.toFixed(1)}h` : `${overallLosDelta.toFixed(1)}h`} vs Target
           </span>
         </div>
-        <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.25rem" }}>
+        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.25rem" }}>
           ED: {avgEdLos.toFixed(1)}h | Med-Surg: {avgWardLos.toFixed(1)}h
         </div>
       </div>
@@ -237,25 +237,25 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
       {/* Peak Queue Bottleneck */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#1e293b",
           borderRadius: "0.5rem",
           padding: "1rem 1.25rem",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #334155",
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#64748b", textTransform: "uppercase" }}>
+        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: "#94a3b8", textTransform: "uppercase" }}>
           Bottleneck Peak Queue
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginTop: "0.25rem" }}>
-          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#0f172a" }}>
+          <span style={{ fontSize: "1.75rem", fontWeight: 700, color: "#f8fafc" }}>
             {peakQueueCount}
           </span>
-          <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#475569" }}>
+          <span style={{ fontSize: "0.875rem", fontWeight: 500, color: "#cbd5e1" }}>
             patients waiting
           </span>
         </div>
-        <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "0.25rem" }}>
+        <div style={{ fontSize: "0.75rem", color: "#94a3b8", marginTop: "0.25rem" }}>
           Anticipated peak at {peakQueueTime}
         </div>
       </div>
@@ -263,14 +263,14 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
       {/* Active Escalations Alert Badge */}
       <div
         style={{
-          backgroundColor: activeEscalationsCount > 0 ? "#fef2f2" : "#ffffff",
+          backgroundColor: activeEscalationsCount > 0 ? "#450a0a" : "#1e293b",
           borderRadius: "0.5rem",
           padding: "1rem 1.25rem",
-          border: activeEscalationsCount > 0 ? "1px solid #fecaca" : "1px solid #e2e8f0",
+          border: activeEscalationsCount > 0 ? "1px solid #7f1d1d" : "1px solid #334155",
           boxShadow: "0 1px 3px rgba(0,0,0,0.05)",
         }}
       >
-        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: activeEscalationsCount > 0 ? "#991b1b" : "#64748b", textTransform: "uppercase" }}>
+        <div style={{ fontSize: "0.75rem", fontWeight: 600, color: activeEscalationsCount > 0 ? "#991b1b" : "#94a3b8", textTransform: "uppercase" }}>
           Escalation Watchlist
         </div>
         <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginTop: "0.25rem" }}>
@@ -278,7 +278,7 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
             style={{
               fontSize: "1.75rem",
               fontWeight: 700,
-              color: activeEscalationsCount > 0 ? "#dc2626" : "#0f172a",
+              color: activeEscalationsCount > 0 ? "#ef4444" : "#f8fafc",
             }}
           >
             {activeEscalationsCount}
@@ -289,14 +289,14 @@ const ExecutiveKpiStrip: React.FC<KpiStripProps> = ({ metrics, hourlyCensus, sta
               fontWeight: 600,
               padding: "0.15rem 0.4rem",
               borderRadius: "0.25rem",
-              backgroundColor: activeEscalationsCount > 0 ? "#dc2626" : "#e2e8f0",
-              color: activeEscalationsCount > 0 ? "#ffffff" : "#475569",
+              backgroundColor: activeEscalationsCount > 0 ? "#ef4444" : "#334155",
+              color: activeEscalationsCount > 0 ? "#ffffff" : "#cbd5e1",
             }}
           >
             {activeEscalationsCount > 0 ? "CRITICAL ALERT" : "NORMAL"}
           </span>
         </div>
-        <div style={{ fontSize: "0.75rem", color: activeEscalationsCount > 0 ? "#b91c1c" : "#64748b", marginTop: "0.25rem" }}>
+        <div style={{ fontSize: "0.75rem", color: activeEscalationsCount > 0 ? "#fca5a5" : "#94a3b8", marginTop: "0.25rem" }}>
           Predicted ICU transfer or invasive ventilation
         </div>
       </div>
@@ -340,13 +340,13 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
       {/* Bed Utilization Capacity Gauges */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#1e293b",
           borderRadius: "0.5rem",
           padding: "1.25rem",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #334155",
         }}
       >
-        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 1rem 0", color: "#0f172a" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 1rem 0", color: "#f8fafc" }}>
           Department Bed Utilization Gauges
         </h3>
         <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
@@ -355,7 +355,7 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
             return (
               <div key={unit.code}>
                 <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.35rem" }}>
-                  <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#334155" }}>
+                  <span style={{ fontSize: "0.875rem", fontWeight: 600, color: "#e2e8f0" }}>
                     {unit.name}
                   </span>
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
@@ -371,7 +371,7 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
                     >
                       {status.label}
                     </span>
-                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#0f172a" }}>
+                    <span style={{ fontSize: "0.875rem", fontWeight: 700, color: "#f8fafc" }}>
                       {unit.pct.toFixed(1)}%
                     </span>
                   </div>
@@ -380,7 +380,7 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
                   style={{
                     height: "0.75rem",
                     width: "100%",
-                    backgroundColor: "#e2e8f0",
+                    backgroundColor: "#334155",
                     borderRadius: "0.375rem",
                     overflow: "hidden",
                   }}
@@ -398,7 +398,7 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
             );
           })}
         </div>
-        <div style={{ marginTop: "1.25rem", fontSize: "0.75rem", color: "#64748b" }}>
+        <div style={{ marginTop: "1.25rem", fontSize: "0.75rem", color: "#94a3b8" }}>
           Thresholds: Optimal (&lt;80%) | Warning (80-90%) | Critical Alert (&gt;90%)
         </div>
       </div>
@@ -406,14 +406,14 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
       {/* Hourly Patient Flow Dual-Axis Chart Area */}
       <div
         style={{
-          backgroundColor: "#ffffff",
+          backgroundColor: "#1e293b",
           borderRadius: "0.5rem",
           padding: "1.25rem",
-          border: "1px solid #e2e8f0",
+          border: "1px solid #334155",
         }}
       >
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.75rem" }}>
-          <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+          <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#f8fafc" }}>
             24h Projected Patient Influx vs. Discharges
           </h3>
           <div style={{ display: "flex", gap: "1rem", fontSize: "0.75rem" }}>
@@ -422,7 +422,7 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
               Arrivals
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
-              <span style={{ width: "10px", height: "10px", backgroundColor: "#16a34a", borderRadius: "2px" }} />
+              <span style={{ width: "10px", height: "10px", backgroundColor: "#4ade80", borderRadius: "2px" }} />
               Discharges
             </span>
             <span style={{ display: "flex", alignItems: "center", gap: "0.25rem" }}>
@@ -478,14 +478,14 @@ const ResourceUtilizationSection: React.FC<ResourceAnalyticsProps> = ({ metrics,
                 )}
                 <div style={{ display: "flex", alignItems: "flex-end", gap: "1px", width: "100%" }}>
                   <div style={{ width: "33%", height: `${arrHeight}px`, backgroundColor: "#2563eb" }} />
-                  <div style={{ width: "33%", height: `${disHeight}px`, backgroundColor: "#16a34a" }} />
+                  <div style={{ width: "33%", height: `${disHeight}px`, backgroundColor: "#4ade80" }} />
                   <div style={{ width: "33%", height: `${qHeight}px`, backgroundColor: "#ea580c" }} />
                 </div>
               </div>
             );
           })}
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem", fontSize: "0.7rem", color: "#64748b" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", marginTop: "0.5rem", fontSize: "0.7rem", color: "#94a3b8" }}>
           <span>00:00 (Night)</span>
           <span>07:00 (Day Shift Shiftover)</span>
           <span>15:00 (Evening Shiftover)</span>
@@ -573,20 +573,20 @@ const ShiftStaffingMatrix: React.FC<ShiftStaffingProps> = ({ hourlyCensus }) => 
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
+        backgroundColor: "#1e293b",
         borderRadius: "0.5rem",
         padding: "1.25rem",
-        border: "1px solid #e2e8f0",
+        border: "1px solid #334155",
         marginBottom: "1.5rem",
       }}
     >
-      <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 1rem 0", color: "#0f172a" }}>
+      <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: "0 0 1rem 0", color: "#f8fafc" }}>
         Shift-Staffing Alignment Matrix & Ratios
       </h3>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", textAlign: "left" }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569" }}>
+            <tr style={{ borderBottom: "2px solid #334155", color: "#cbd5e1" }}>
               <th style={{ padding: "0.6rem" }}>Shift Window</th>
               <th style={{ padding: "0.6rem" }}>Hours (Active)</th>
               <th style={{ padding: "0.6rem" }}>Mean Census</th>
@@ -606,9 +606,9 @@ const ShiftStaffingMatrix: React.FC<ShiftStaffingProps> = ({ hourlyCensus }) => 
                   : "23:00 - 07:00";
 
               return (
-                <tr key={row.shift} style={{ borderBottom: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: "0.6rem", fontWeight: 600, color: "#1e293b" }}>{row.shift}</td>
-                  <td style={{ padding: "0.6rem", color: "#64748b" }}>{hoursWindow}</td>
+                <tr key={row.shift} style={{ borderBottom: "1px solid #0f172a" }}>
+                  <td style={{ padding: "0.6rem", fontWeight: 600, color: "#f1f5f9" }}>{row.shift}</td>
+                  <td style={{ padding: "0.6rem", color: "#94a3b8" }}>{hoursWindow}</td>
                   <td style={{ padding: "0.6rem", fontWeight: 600 }}>{row.meanCensus} pts</td>
                   <td style={{ padding: "0.6rem" }}>
                     {row.targetNurses} / <strong>{row.activeNurses} RNs</strong>
@@ -624,9 +624,9 @@ const ShiftStaffingMatrix: React.FC<ShiftStaffingProps> = ({ hourlyCensus }) => 
                         fontSize: "0.75rem",
                         fontWeight: 600,
                         backgroundColor:
-                          row.nurseGap < 0 ? "#fef2f2" : row.nurseGap > 0 ? "#f0fdf4" : "#f8fafc",
+                          row.nurseGap < 0 ? "#450a0a" : row.nurseGap > 0 ? "#052e16" : "#0f172a",
                         color:
-                          row.nurseGap < 0 ? "#b91c1c" : row.nurseGap > 0 ? "#15803d" : "#475569",
+                          row.nurseGap < 0 ? "#fca5a5" : row.nurseGap > 0 ? "#86efac" : "#cbd5e1",
                       }}
                     >
                       {row.nurseGap > 0
@@ -638,11 +638,11 @@ const ShiftStaffingMatrix: React.FC<ShiftStaffingProps> = ({ hourlyCensus }) => 
                   </td>
                   <td style={{ padding: "0.6rem" }}>
                     {row.safeRatioViolated ? (
-                      <span style={{ color: "#dc2626", fontWeight: 700, fontSize: "0.75rem" }}>
+                      <span style={{ color: "#ef4444", fontWeight: 700, fontSize: "0.75rem" }}>
                         [!] Ratio Breach Warning (&gt;6.5:1)
                       </span>
                     ) : (
-                      <span style={{ color: "#16a34a", fontWeight: 600, fontSize: "0.75rem" }}>
+                      <span style={{ color: "#4ade80", fontWeight: 600, fontSize: "0.75rem" }}>
                         Safe Workforce Baselines Maintained
                       </span>
                     )}
@@ -700,28 +700,28 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
   return (
     <div
       style={{
-        backgroundColor: "#ffffff",
+        backgroundColor: "#1e293b",
         borderRadius: "0.5rem",
         padding: "1.25rem",
-        border: "1px solid #e2e8f0",
+        border: "1px solid #334155",
       }}
     >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#0f172a" }}>
+        <h3 style={{ fontSize: "1rem", fontWeight: 700, margin: 0, color: "#f8fafc" }}>
           Patient Flow Trajectories & Clinical Escalation Radar
         </h3>
         {/* Trajectory percentage split indicator */}
         <div style={{ display: "flex", gap: "1rem", fontSize: "0.8rem", fontWeight: 600 }}>
-          <span style={{ color: "#16a34a" }}>ED Discharge: {dispositionBreakdown.edDischarge}%</span>
+          <span style={{ color: "#4ade80" }}>ED Discharge: {dispositionBreakdown.edDischarge}%</span>
           <span style={{ color: "#2563eb" }}>Med-Surg Ward: {dispositionBreakdown.wardAdmit}%</span>
-          <span style={{ color: "#dc2626" }}>Direct ICU: {dispositionBreakdown.icuAdmit}%</span>
+          <span style={{ color: "#ef4444" }}>Direct ICU: {dispositionBreakdown.icuAdmit}%</span>
         </div>
       </div>
 
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: "0.875rem", textAlign: "left" }}>
           <thead>
-            <tr style={{ borderBottom: "2px solid #e2e8f0", color: "#475569" }}>
+            <tr style={{ borderBottom: "2px solid #334155", color: "#cbd5e1" }}>
               <th style={{ padding: "0.6rem" }}>Stay / Patient</th>
               <th style={{ padding: "0.6rem" }}>Acuity (ESI)</th>
               <th style={{ padding: "0.6rem" }}>Comorbidity & Demographics</th>
@@ -741,14 +741,14 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                 <tr
                   key={stay.stay_id}
                   style={{
-                    borderBottom: "1px solid #f1f5f9",
-                    backgroundColor: stay.icu_transfer_flag === 1 || stay.requires_ventilation === 1 ? "#fffbfb" : "#ffffff",
+                    borderBottom: "1px solid #0f172a",
+                    backgroundColor: stay.icu_transfer_flag === 1 || stay.requires_ventilation === 1 ? "#1e293b" : "#1e293b",
                   }}
                 >
                   {/* Identifiers */}
-                  <td style={{ padding: "0.6rem", fontWeight: 600, color: "#1e293b" }}>
+                  <td style={{ padding: "0.6rem", fontWeight: 600, color: "#f1f5f9" }}>
                     <div>#{stay.stay_id}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>PT-{stay.patient_id}</div>
+                    <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>PT-{stay.patient_id}</div>
                   </td>
 
                   {/* Triage Acuity */}
@@ -768,9 +768,9 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                   </td>
 
                   {/* Comorbidity & Demographics */}
-                  <td style={{ padding: "0.6rem", color: "#334155" }}>
+                  <td style={{ padding: "0.6rem", color: "#e2e8f0" }}>
                     <div>{stay.age}yo {stay.gender}</div>
-                    <div style={{ fontSize: "0.75rem", color: "#64748b" }}>Charlson CCI: {stay.charlson_index}/10</div>
+                    <div style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Charlson CCI: {stay.charlson_index}/10</div>
                   </td>
 
                   {/* Complaint & Disposition */}
@@ -787,13 +787,13 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                       {stay.icu_transfer_flag === 1 && (
                         <span
                           style={{
-                            backgroundColor: "#fef2f2",
-                            color: "#b91c1c",
+                            backgroundColor: "#450a0a",
+                            color: "#fca5a5",
                             fontSize: "0.7rem",
                             fontWeight: 700,
                             padding: "0.15rem 0.4rem",
                             borderRadius: "0.25rem",
-                            border: "1px solid #fecaca",
+                            border: "1px solid #7f1d1d",
                           }}
                         >
                           Ward -&gt; ICU Transfer Triggered
@@ -802,26 +802,26 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                       {stay.requires_ventilation === 1 && (
                         <span
                           style={{
-                            backgroundColor: "#eff6ff",
+                            backgroundColor: "#172554",
                             color: "#1d4ed8",
                             fontSize: "0.7rem",
                             fontWeight: 700,
                             padding: "0.15rem 0.4rem",
                             borderRadius: "0.25rem",
-                            border: "1px solid #bfdbfe",
+                            border: "1px solid #1e3a8a",
                           }}
                         >
                           Mechanical Ventilation
                         </span>
                       )}
                       {stay.icu_transfer_flag === 0 && stay.requires_ventilation === 0 && (
-                        <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Stable Path</span>
+                        <span style={{ fontSize: "0.75rem", color: "#94a3b8" }}>Stable Path</span>
                       )}
                     </div>
                   </td>
 
                   {/* Vitals Panel */}
-                  <td style={{ padding: "0.6rem", fontSize: "0.75rem", color: "#334155" }}>
+                  <td style={{ padding: "0.6rem", fontSize: "0.75rem", color: "#e2e8f0" }}>
                     <div>HR: {stay.heart_rate} bpm | SpO2: {stay.o2_sat}%</div>
                     <div>BP: {stay.sbp}/{stay.dbp} mmHg | RR: {stay.resp_rate}</div>
                   </td>
@@ -831,13 +831,13 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                     {isPulsePressureValid ? (
                       <span
                         style={{
-                          backgroundColor: "#f0fdf4",
+                          backgroundColor: "#052e16",
                           color: "#166534",
                           fontSize: "0.7rem",
                           fontWeight: 700,
                           padding: "0.15rem 0.4rem",
                           borderRadius: "0.25rem",
-                          border: "1px solid #bbf7d0",
+                          border: "1px solid #14532d",
                           display: "inline-block",
                         }}
                       >
@@ -846,7 +846,7 @@ const ClinicalEscalationRadar: React.FC<ClinicalRadarProps> = ({ stays }) => {
                     ) : (
                       <span
                         style={{
-                          backgroundColor: "#fef2f2",
+                          backgroundColor: "#450a0a",
                           color: "#991b1b",
                           fontSize: "0.7rem",
                           fontWeight: 700,
@@ -919,7 +919,7 @@ export const ForecastDashboard: React.FC = () => {
       <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto", textAlign: "center" }}>
         <div
           style={{
-            backgroundColor: "#fef2f2",
+            backgroundColor: "#450a0a",
             border: "1px solid #f87171",
             color: "#991b1b",
             padding: "1.5rem",
@@ -933,7 +933,7 @@ export const ForecastDashboard: React.FC = () => {
           <button
             onClick={handleManualRefresh}
             style={{
-              backgroundColor: "#dc2626",
+              backgroundColor: "#ef4444",
               color: "#ffffff",
               border: "none",
               padding: "0.5rem 1.25rem",
@@ -956,10 +956,10 @@ export const ForecastDashboard: React.FC = () => {
   return (
     <div
       style={{
-        backgroundColor: "#f8fafc",
+        backgroundColor: "#0f172a",
         minHeight: "100vh",
         padding: "1.5rem",
-        color: "#0f172a",
+        color: "#f8fafc",
         fontFamily: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
       }}
     >
@@ -977,7 +977,7 @@ export const ForecastDashboard: React.FC = () => {
         >
           <div>
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-              <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, color: "#0f172a" }}>
+              <h1 style={{ fontSize: "1.5rem", fontWeight: 800, margin: 0, color: "#f8fafc" }}>
                 Hospital Digital Twin - Forecast & Telemetry Command Center
               </h1>
               {/* Background Revalidation Pulse */}
@@ -990,7 +990,7 @@ export const ForecastDashboard: React.FC = () => {
                   fontWeight: 600,
                   padding: "0.2rem 0.5rem",
                   borderRadius: "9999px",
-                  backgroundColor: isRefreshing ? "#fef3c7" : "#f0fdf4",
+                  backgroundColor: isRefreshing ? "#78350f" : "#052e16",
                   color: isRefreshing ? "#b45309" : "#166534",
                 }}
               >
@@ -1005,7 +1005,7 @@ export const ForecastDashboard: React.FC = () => {
                 {isRefreshing ? "Live Sync Active..." : "Telemetry Synchronized"}
               </div>
             </div>
-            <div style={{ fontSize: "0.8rem", color: "#64748b", marginTop: "0.25rem" }}>
+            <div style={{ fontSize: "0.8rem", color: "#94a3b8", marginTop: "0.25rem" }}>
               Snapshot generated: {data.generated_at} | SimClock Anchor: 2026-09-23 00:00:00
             </div>
           </div>
@@ -1015,13 +1015,13 @@ export const ForecastDashboard: React.FC = () => {
               onClick={handleManualRefresh}
               disabled={isRefreshing}
               style={{
-                backgroundColor: "#ffffff",
+                backgroundColor: "#1e293b",
                 border: "1px solid #cbd5e1",
                 padding: "0.5rem 1rem",
                 borderRadius: "0.375rem",
                 fontSize: "0.875rem",
                 fontWeight: 600,
-                color: "#334155",
+                color: "#e2e8f0",
                 cursor: isRefreshing ? "not-allowed" : "pointer",
               }}
             >
@@ -1047,13 +1047,13 @@ export const ForecastDashboard: React.FC = () => {
               onClick={resetSimulation}
               disabled={isRefreshing}
               style={{
-                backgroundColor: "#ffffff",
+                backgroundColor: "#1e293b",
                 border: "1px solid #cbd5e1",
                 padding: "0.5rem 1rem",
                 borderRadius: "0.375rem",
                 fontSize: "0.875rem",
                 fontWeight: 600,
-                color: "#dc2626",
+                color: "#ef4444",
                 cursor: isRefreshing ? "not-allowed" : "pointer",
               }}
             >

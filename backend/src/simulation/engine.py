@@ -49,6 +49,8 @@ class SimulationConfig:
     ward_capacity: int = 150
     icu_capacity: int = 30
     seed: int = 42
+    nurse_staffing_multiplier: float = 1.0
+    doctor_staffing_multiplier: float = 1.0
     distribution_config: Optional[DistributionConfig] = None
 
     def __post_init__(self) -> None:
@@ -60,6 +62,16 @@ class SimulationConfig:
             raise ValueError(f"icu_capacity must be between 1 and 50, got {self.icu_capacity}")
         if self.duration_hours < 1:
             raise ValueError(f"duration_hours must be at least 1, got {self.duration_hours}")
+        if not (0.2 <= self.nurse_staffing_multiplier <= 1.0):
+            raise ValueError(
+                f"nurse_staffing_multiplier must be between 0.2 and 1.0, "
+                f"got {self.nurse_staffing_multiplier}"
+            )
+        if not (0.2 <= self.doctor_staffing_multiplier <= 1.0):
+            raise ValueError(
+                f"doctor_staffing_multiplier must be between 0.2 and 1.0, "
+                f"got {self.doctor_staffing_multiplier}"
+            )
 
 
 @dataclass
@@ -194,6 +206,26 @@ class HospitalSimulationEngine:
             )
             self.bed_map[bed_id] = updated_bed
 
+    def _staffing_slowdown_factor(self) -> float:
+        """Compute how much longer patient care takes due to reduced staffing.
+
+        Fewer doctors slow down diagnosis, treatment decisions, and discharge
+        approval; fewer nurses slow down ongoing monitoring and care execution.
+        Doctors are weighted slightly higher since they gate clinical
+        progression more directly. The result is clamped to [1.0, 2.0] so that
+        even a worst-case combined shortage (both multipliers at their 0.2
+        floor) roughly doubles care time rather than producing unrealistic
+        extremes.
+
+        Returns 1.0 (no slowdown) when staffing is at full baseline (1.0/1.0).
+        """
+        combined_staffing_ratio = (
+            0.6 * self.config.doctor_staffing_multiplier
+            + 0.4 * self.config.nurse_staffing_multiplier
+        )
+        slowdown = 1.0 / combined_staffing_ratio
+        return max(1.0, min(2.0, slowdown))
+
     # -----------------------------------------------------------------------
     # Patient Trajectory Lifecycle (SimPy Process)
     # -----------------------------------------------------------------------
@@ -318,6 +350,13 @@ class HospitalSimulationEngine:
 
         # 9. Clinical Care Delivery & Progression
         target_los_hours = self.sampler._sample_bounded_lognormal(*los_params)
+
+        # Reduced doctor/nurse staffing extends how long care actually takes,
+        # which increases effective bed occupancy time even when bed capacity
+        # itself is unchanged. At full staffing (1.0/1.0) this factor is 1.0
+        # and behavior is identical to before this change.
+        target_los_hours *= self._staffing_slowdown_factor()
+
         total_care_seconds = max(1800.0, target_los_hours * 3600.0)
 
         try:
@@ -512,6 +551,11 @@ class HospitalSimulationEngine:
             else:
                 shift_id = ShiftType.NIGHT
                 base_nurses, base_doctors = 20, 5
+
+            # Apply scenario-driven staffing shortage multipliers, then
+            # let the existing clamp below keep values within contract bounds.
+            base_nurses = int(round(base_nurses * self.config.nurse_staffing_multiplier))
+            base_doctors = int(round(base_doctors * self.config.doctor_staffing_multiplier))
 
             # Controlled Operational Variation within Contract Bounds
             active_nurses = max(
