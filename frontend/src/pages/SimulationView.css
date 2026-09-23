@@ -1,0 +1,245 @@
+/* src/pages/Simulation.css */
+.sim-container {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  padding: 2rem;
+  background-color: #0f172a;
+  color: #e2e8f0;
+  min-height: 100vh;
+}
+
+.sim-container.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #38bdf8;
+}
+
+.sim-container.error {
+  color: #f87171;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.sim-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  border-bottom: 1px solid #334155;
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.sim-header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.75rem;
+  color: #f8fafc;
+}
+
+.timestamp {
+  margin: 0;
+  font-size: 0.875rem;
+  color: #94a3b8;
+}
+
+.sim-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.sim-actions button {
+  color: white;
+  border: none;
+  padding: 0.6rem 1.2rem;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: inherit;
+  font-weight: 600;
+  transition: opacity 0.2s;
+}
+
+.sim-actions button:hover {
+  opacity: 0.9;
+}
+
+.btn-baseline {
+  background-color: #334155;
+  border: 1px solid #475569 !important;
+}
+
+.btn-stress {
+  background-color: #b91c1c;
+}
+
+.config-panel {
+  background-color: #1e293b;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  padding: 1rem 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.config-panel h2 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: #60a5fa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.config-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2rem;
+}
+
+.config-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.config-item label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.25rem;
+}
+
+.config-item span {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #f8fafc;
+}
+
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.metric-box {
+  background-color: #0f172a;
+  border: 1px solid #334155;
+  padding: 1.25rem;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+}
+
+.metric-box label {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-bottom: 0.5rem;
+  text-transform: uppercase;
+}
+
+.metric-box span {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.data-panels {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.grid-2-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+}
+
+.data-panel {
+  background-color: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.data-panel h2 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.125rem;
+  color: #f1f5f9;
+}
+
+.panel-desc {
+  color: #94a3b8;
+  font-size: 0.875rem;
+  margin-bottom: 1.25rem;
+}
+
+.table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #334155;
+  border-radius: 4px;
+}
+
+.max-h-500 {
+  max-height: 500px;
+  overflow-y: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+th, td {
+  padding: 0.75rem;
+  border-bottom: 1px solid #334155;
+  white-space: nowrap;
+}
+
+th {
+  background-color: #0f172a;
+  color: #cbd5e1;
+  font-weight: 600;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+tr:hover {
+  background-color: #334155;
+}
+
+.row-warning {
+  background-color: rgba(245, 158, 11, 0.15);
+}
+
+.truncate {
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.text-xs {
+  font-size: 0.75rem;
+}
+
+.text-success { color: #4ade80 !important; }
+.text-danger { color: #f87171 !important; }
+.font-bold { font-weight: 700; }
+
+/* Custom Scrollbar for inner tables */
+.table-wrapper::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.table-wrapper::-webkit-scrollbar-track {
+  background: #0f172a; 
+}
+.table-wrapper::-webkit-scrollbar-thumb {
+  background: #334155; 
+  border-radius: 4px;
+}
+.table-wrapper::-webkit-scrollbar-thumb:hover {
+  background: #475569; 
+}

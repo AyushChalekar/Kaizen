@@ -1,111 +1,305 @@
-import React, { useState } from 'react';
-import { Play, Pause, FastForward, Rewind, Activity, Ambulance, Stethoscope, Bed, HeartPulse, LogOut } from 'lucide-react';
+// src/pages/SimulationView.tsx
+import React, { useState, useEffect } from 'react';
 import './Simulation.css';
 
-export function SimulationView() {
-  const [isPlaying, setIsPlaying] = useState(true);
-  const [speed, setSpeed] = useState(1);
+interface SimulationConfig {
+  duration_hours: number;
+  ed_capacity: number;
+  ward_capacity: number;
+  icu_capacity: number;
+  seed: number;
+}
 
-  const togglePlay = () => setIsPlaying(!isPlaying);
-  
-  const handleSpeed = (newSpeed: number) => {
-    setSpeed(newSpeed);
+interface SimulationMetrics {
+  total_arrivals: number;
+  total_admissions: number;
+  total_discharges: number;
+  completed_stays_count: number;
+  peak_queue_length: number;
+  average_los_hours: number;
+  ed_utilization_pct: number;
+  ward_utilization_pct: number;
+  icu_utilization_pct: number;
+}
+
+interface PatientStay {
+  stay_id: number;
+  triage_acuity: number;
+  chief_complaint: string;
+  sbp: number;
+  dbp: number;
+  heart_rate: number;
+  temp_c: number;
+  arrival_time: string;
+  triage_start_time: string;
+  bed_assigned_time: string;
+  discharge_time: string;
+  initial_care_unit: string;
+  disposition: string;
+  icu_transfer_flag: number;
+  los_hours: number;
+}
+
+interface HourlyCensus {
+  hour: number;
+  shift_id: string;
+  active_nurses: number;
+  active_doctors: number;
+  arrivals_count: number;
+  patients_in_queue: number;
+  ed_occupancy: number;
+  ward_occupancy: number;
+  icu_occupancy: number;
+}
+
+interface SimulationData {
+  generated_at: string;
+  config: SimulationConfig;
+  metrics: SimulationMetrics;
+  stays: PatientStay[];
+  hourly_census: HourlyCensus[];
+}
+
+export function SimulationView() {
+  const [data, setData] = useState<SimulationData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSimulation = async (endpoint: string, method: string = 'GET', body?: any) => {
+    setLoading(true);
+    setError(null);
+    try {
+      const options: RequestInit = {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+      };
+      if (body) options.body = JSON.stringify(body);
+
+      const response = await fetch(`http://localhost:8000${endpoint}`, options);
+      if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+      
+      const jsonData = await response.json();
+      setData(jsonData);
+    } catch (err: any) {
+      setError(err.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
+  useEffect(() => {
+    fetchSimulation('/api/simulation/data?include_stays=true');
+  }, []);
+
+  const runStressTest = () => {
+    fetchSimulation('/api/simulation/run', 'POST', {
+      duration_hours: 24,
+      ed_capacity: 30, // Bottlenecked ED
+      ward_capacity: 100, // Reduced Ward
+      icu_capacity: 15, // Reduced ICU
+      seed: 99
+    });
+  };
+
+  const runBaseline = () => {
+    fetchSimulation('/api/simulation/reset', 'POST');
+  };
+
+  if (loading) return <div className="sim-container loading">Executing Discrete-Event Simulation...</div>;
+  if (error) return <div className="sim-container error">Connection Error: {error}</div>;
+  if (!data) return null;
+
   return (
-    <div className="simulation-page">
-      <div className="page-header">
-        <div className="header-title">
-          <h1>Digital Twin Simulation</h1>
-          <p>Live animated view of patient flow and state transitions.</p>
+    <div className="sim-container">
+      <div className="sim-header">
+        <div>
+          <h1>Backend Capability Validation Dashboard</h1>
+          <p className="timestamp">Generated: {new Date(data.generated_at).toLocaleString()}</p>
         </div>
-        
-        {/* Controls */}
-        <div className="sim-controls glass-card">
-          <button className="control-btn" onClick={() => handleSpeed(0.5)} title="Slow">
-            <Rewind size={18} />
-          </button>
-          
-          <button className={`control-btn play-pause ${isPlaying ? 'playing' : ''}`} onClick={togglePlay}>
-            {isPlaying ? <Pause size={24} /> : <Play size={24} />}
-          </button>
-          
-          <button className="control-btn" onClick={() => handleSpeed(2)} title="Fast">
-            <FastForward size={18} />
-          </button>
-          
-          <div className="speed-indicator">{speed}x Speed</div>
+        <div className="sim-actions">
+          <button className="btn-baseline" onClick={runBaseline}>Run Baseline (24h)</button>
+          <button className="btn-stress" onClick={runStressTest}>Run Resource Stress Test</button>
         </div>
       </div>
 
-      <div className="sim-canvas glass-card">
-        <div className={`pipeline-container ${isPlaying ? 'animating' : 'paused'}`} style={{ '--sim-speed': `${1 / speed}s` } as React.CSSProperties}>
-          
-          {/* Nodes */}
-          <div className="node node-arrival">
-            <div className="node-icon bg-blue"><Ambulance size={24} /></div>
-            <span>Arrivals</span>
-            <div className="node-stats">12 / hr</div>
+      {/* Active Conditions Panel */}
+      <div className="config-panel">
+        <h2>Active Simulation Conditions</h2>
+        <div className="config-grid">
+          <div className="config-item">
+            <label>Duration</label>
+            <span>{data.config.duration_hours} hours</span>
           </div>
-
-          <div className="node node-triage">
-            <div className="node-icon bg-teal"><Stethoscope size={24} /></div>
-            <span>Triage</span>
-            <div className="node-stats">Wait: 15m</div>
+          <div className="config-item">
+            <label>ED Capacity</label>
+            <span>{data.config.ed_capacity} bays</span>
           </div>
-
-          <div className="node node-ward">
-            <div className="node-icon bg-amber"><Bed size={24} /></div>
-            <span>General Ward</span>
-            <div className="node-stats">198 Beds</div>
+          <div className="config-item">
+            <label>Ward Capacity</label>
+            <span>{data.config.ward_capacity} beds</span>
           </div>
-
-          <div className="node node-icu">
-            <div className="node-icon bg-red"><HeartPulse size={24} /></div>
-            <span>ICU</span>
-            <div className="node-stats">19 Beds</div>
+          <div className="config-item">
+            <label>ICU Capacity</label>
+            <span>{data.config.icu_capacity} beds</span>
           </div>
-
-          <div className="node node-discharge">
-            <div className="node-icon bg-green"><LogOut size={24} /></div>
-            <span>Discharge</span>
-            <div className="node-stats">8 / hr</div>
+          <div className="config-item">
+            <label>RNG Seed</label>
+            <span>{data.config.seed}</span>
           </div>
-
-          {/* Connectors & Animated Particles */}
-          <div className="path path-arrival-triage">
-            <div className="particle"></div>
-            <div className="particle delay-1"></div>
-          </div>
-          
-          <div className="path path-triage-ward">
-            <div className="particle"></div>
-          </div>
-          
-          <div className="path path-triage-icu">
-            <div className="particle delay-2 alert"></div>
-          </div>
-
-          <div className="path path-ward-discharge">
-            <div className="particle delay-1"></div>
-          </div>
-
-          <div className="path path-icu-ward">
-            <div className="particle delay-2"></div>
-          </div>
-
         </div>
       </div>
-      
-      <div className="sim-details">
-        <div className="glass-card detail-panel">
-          <h3>Simulation Parameters</h3>
-          <ul className="sim-params">
-            <li><strong>Engine Mode:</strong> Discrete Event Simulation (SimPy)</li>
-            <li><strong>Time Horizon:</strong> Next 24 Hours</li>
-            <li><strong>Random Seed:</strong> 42 (Deterministic Mode)</li>
-            <li><strong>Current Status:</strong> {isPlaying ? <span className="status-live">Running</span> : <span className="status-paused">Paused</span>}</li>
-          </ul>
+
+      <div className="metrics-grid">
+        <div className="metric-box">
+          <label>Peak Queue Length</label>
+          <span className={data.metrics.peak_queue_length > 10 ? 'text-danger' : 'text-success'}>
+            {data.metrics.peak_queue_length}
+          </span>
+        </div>
+        <div className="metric-box">
+          <label>Completed Encounters</label>
+          <span>{data.metrics.completed_stays_count}</span>
+        </div>
+        <div className="metric-box">
+          <label>ED Utilization</label>
+          <span className={data.metrics.ed_utilization_pct > 85 ? 'text-danger' : ''}>
+            {data.metrics.ed_utilization_pct.toFixed(1)}%
+          </span>
+        </div>
+        <div className="metric-box">
+          <label>ICU Utilization</label>
+          <span className={data.metrics.icu_utilization_pct > 85 ? 'text-danger' : ''}>
+            {data.metrics.icu_utilization_pct.toFixed(1)}%
+          </span>
+        </div>
+        <div className="metric-box">
+          <label>Average LoS</label>
+          <span>{data.metrics.average_los_hours.toFixed(1)} hrs</span>
+        </div>
+      </div>
+
+      <div className="data-panels">
+        {/* Capability 1 & 3: Systemic Bottlenecks & Diurnal Staffing */}
+        <section className="data-panel">
+          <h2>Diurnal Staffing & Systemic Bottlenecks</h2>
+          <p className="panel-desc">Validating HourlyCensusContract alignment with shift mappings, capacity constraints, and queue formations[cite: 4].</p>
+          <div className="table-wrapper">
+            <table>
+              <thead>
+                <tr>
+                  <th>Hour</th>
+                  <th>Shift</th>
+                  <th>Staff (RN / MD)</th>
+                  <th>Arrivals</th>
+                  <th>Queue Size</th>
+                  <th>ED Occ</th>
+                  <th>Ward Occ</th>
+                  <th>ICU Occ</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.hourly_census.map((census, idx) => (
+                  <tr key={idx} className={census.patients_in_queue > 0 ? 'row-warning' : ''}>
+                    <td>{census.hour.toString().padStart(2, '0')}:00</td>
+                    <td>{census.shift_id}</td>
+                    <td>{census.active_nurses} / {census.active_doctors}</td>
+                    <td>{census.arrivals_count}</td>
+                    <td className={census.patients_in_queue > 0 ? 'text-danger font-bold' : ''}>
+                      {census.patients_in_queue}
+                    </td>
+                    <td>{census.ed_occupancy} / {data.config.ed_capacity}</td>
+                    <td>{census.ward_occupancy} / {data.config.ward_capacity}</td>
+                    <td>{census.icu_occupancy} / {data.config.icu_capacity}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <div className="grid-2-col">
+          {/* Capability 2: Clinical Trajectories */}
+          <section className="data-panel">
+            <h2>Clinical Trajectories & Monotonicity</h2>
+            <p className="panel-desc">Validating sequential timestamp logic (Arrival &le; Triage &le; Bed &le; Discharge) and patient flow[cite: 4].</p>
+            <div className="table-wrapper max-h-500">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Timeline (Arr &rarr; Trg &rarr; Bed &rarr; Dis)</th>
+                    <th>Routing Path</th>
+                    <th>Valid Sequence</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.stays.slice(0, 50).map((stay) => {
+                    const isMonotonic = 
+                      stay.arrival_time <= stay.triage_start_time &&
+                      stay.triage_start_time <= stay.bed_assigned_time &&
+                      stay.bed_assigned_time <= stay.discharge_time;
+
+                    return (
+                      <tr key={stay.stay_id}>
+                        <td>{stay.stay_id}</td>
+                        <td className="text-xs">
+                          {stay.arrival_time.split(' ')[1]} &rarr; {stay.triage_start_time.split(' ')[1]} &rarr; {stay.bed_assigned_time.split(' ')[1]} &rarr; {stay.discharge_time.split(' ')[1]}
+                        </td>
+                        <td>
+                          {stay.initial_care_unit} &rarr; {stay.disposition}
+                          {stay.icu_transfer_flag === 1 ? ' (ICU Esc)' : ''}
+                        </td>
+                        <td className={isMonotonic ? 'text-success font-bold' : 'text-danger font-bold'}>
+                          {isMonotonic ? 'PASS' : 'FAIL'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
+
+          {/* Capability 4: Physiological Invariants */}
+          <section className="data-panel">
+            <h2>Physiological Invariants</h2>
+            <p className="panel-desc">Validating stochastic sampling bounds. Minimum pulse pressure (SBP - DBP) must remain &ge; 15.0 mmHg[cite: 4].</p>
+            <div className="table-wrapper max-h-500">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>ESI</th>
+                    <th>SBP</th>
+                    <th>DBP</th>
+                    <th>Pulse Pressure</th>
+                    <th>HR</th>
+                    <th>O2 Sat</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {data.stays.slice(0, 50).map((stay) => {
+                    const pulsePressure = (stay.sbp - stay.dbp).toFixed(1);
+                    const isValid = (stay.sbp - stay.dbp) >= 15.0;
+
+                    return (
+                      <tr key={stay.stay_id}>
+                        <td>{stay.stay_id}</td>
+                        <td>{stay.triage_acuity}</td>
+                        <td>{stay.sbp}</td>
+                        <td>{stay.dbp}</td>
+                        <td className={isValid ? 'text-success font-bold' : 'text-danger font-bold'}>
+                          {pulsePressure}
+                        </td>
+                        <td>{stay.heart_rate}</td>
+                        <td>{stay.temp_c}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </section>
         </div>
       </div>
     </div>

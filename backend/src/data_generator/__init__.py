@@ -1,3 +1,10 @@
-# Data generator module
+# backend/src/data_generator/__init__.py
+from .mimic_distributions import (
+    DistributionConfig,
+    MIMICDistributionSampler,
+)
 
-from .mimic_distributions import MimicIVEmpiricalEngine
+__all__ = [
+    "DistributionConfig",
+    "MIMICDistributionSampler",
+]

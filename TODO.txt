@@ -1,0 +1,53 @@
+OUTPUT="digital_twin_bundle.md"
+echo "# Digital Twin Module Context" > "$OUTPUT"
+
+FILES=(
+  "backend/src/simulation/engine.py"
+  "backend/src/schemas/contracts.py"
+  "backend/src/data_generator/mimic_distributions.py"
+  "backend/src/main.py"
+  "backend/tests/test_simulation.py"
+  "frontend/src/pages/SimulationView.tsx"
+  "frontend/src/pages/OverviewDashboard.tsx"
+  "frontend/src/pages/QueueStaffView.tsx"
+)
+
+# hospital_digital_twin_issues.txt
+
+================================================================================
+HOSPITAL DIGITAL TWIN MODULE - DISCREPANCIES & AUDIT NOTES
+================================================================================
+
+[MODULE OVERVIEW]
+Represents the state of the hospital environment. This data is shared with the
+prediction and decision-making model.
+
+--------------------------------------------------------------------------------
+DISCREPANCIES AND BUGS TO ADDRESS
+--------------------------------------------------------------------------------
+
+1. Data Mapping Error (O2 Saturation)
+   - Location: SimulationView.tsx
+   - Problem: The PatientStay interface does not define o2_sat.
+   - Impact:  The "Physiological Invariants" table incorrectly renders the
+              patient's temperature ({stay.temp_c}) under the <th>O2 Sat</th>
+              column.
+
+2. Unused Payload Data (Over-fetching)
+   - Location: Backend SimulationDataResponse -> Frontend SimulationData
+   - Problem:  The backend returns a bed_topology array containing the status
+              of every physical bed, but the frontend SimulationData interface
+              omits this property entirely.
+   - Impact:  Data is downloaded over the network but never utilized by the UI.
+
+3. Missing Contract Fields in TypeScript
+   - Location: PatientStay and HourlyCensus interfaces
+   - Problem:  The frontend interfaces omit several fields sent by the backend:
+                 * patient_id
+                 * age
+                 * charlson_index
+                 * resp_rate
+                 * incoming_arrivals_next_4h
+   - Impact:  While TypeScript safely ignores extra JSON properties at runtime,
+              updating the interfaces will expose these fields for upcoming
+              dashboard expansions.
