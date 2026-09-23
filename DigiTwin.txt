@@ -1,0 +1,233 @@
+=========================================
+FILE EXTRACTION
+=========================================
+# bundle_twin_to_markdown.sh
+#!/bin/bash
+
+# Configuration
+PROJECT_DIR="/home/adomin/kaizen"
+WORKTREE_DIR="$PROJECT_DIR/.kilo/worktrees/shocking-twill"
+OUTPUT_MD="digital_twin_bundle.md"
+LOG_FILE="bundle_execution.log"
+
+# Initialize or clear log file
+echo "=== Digital Twin Extraction Log - $(date) ===" > "$LOG_FILE"
+
+log_msg() {
+    local timestamp
+    timestamp=$(date +'%Y-%m-%d %H:%M:%S')
+    echo "[$timestamp] $1" | tee -a "$LOG_FILE"
+}
+
+log_msg "INFO: Starting extraction process..."
+
+# Determine correct working directory
+TARGET_DIR=""
+if [ -d "$WORKTREE_DIR" ]; then
+    TARGET_DIR="$WORKTREE_DIR"
+    log_msg "INFO: Found worktree directory at $WORKTREE_DIR"
+elif [ -d "$PROJECT_DIR" ]; then
+    TARGET_DIR="$PROJECT_DIR"
+    log_msg "INFO: Using main project directory at $PROJECT_DIR"
+else
+    log_msg "ERROR: Neither project path nor worktree path exists!"
+    exit 1
+fi
+
+cd "$TARGET_DIR" || { log_msg "ERROR: Failed to change directory to $TARGET_DIR"; exit 1; }
+
+# Initialize markdown bundle
+echo "# Digital Twin Module Context" > "$OUTPUT_MD"
+log_msg "INFO: Created output bundle $OUTPUT_MD"
+
+# List of critical files for the digital twin module
+FILES=(
+  "backend/src/simulation/engine.py"
+  "backend/src/schemas/contracts.py"
+  "backend/src/data_generator/mimic_distributions.py"
+  "backend/src/main.py"
+  "backend/tests/test_simulation.py"
+  "frontend/src/pages/SimulationView.tsx"
+  "frontend/src/pages/OverviewDashboard.tsx"
+  "frontend/src/pages/QueueStaffView.tsx"
+)
+
+SUCCESS_COUNT=0
+FAIL_COUNT=0
+
+for file in "${FILES[@]}"; do
+    if [ -f "$file" ]; then
+        log_msg "SUCCESS: Found and processing file -> $file"
+        echo -e "\n## File: $file\n" >> "$OUTPUT_MD"
+        echo '```' >> "$OUTPUT_MD"
+        cat "$file" >> "$OUTPUT_MD"
+        echo -e '\n```' >> "$OUTPUT_MD"
+        ((SUCCESS_COUNT++))
+    else
+        log_msg "WARNING: File missing or unreadable -> $file"
+        ((FAIL_COUNT++))
+    fi
+done
+
+log_msg "INFO: Extraction completed. Processed: $SUCCESS_COUNT success(es), $FAIL_COUNT failure(s)/missing file(s)."
+log_msg "INFO: Bundle saved successfully to $(pwd)/$OUTPUT_MD"
+
+# Open Windows explorer to easily drag and drop
+if command -v explorer.exe &> /dev/null; then
+    log_msg "INFO: Opening Windows Explorer..."
+    explorer.exe .
+fi
+================================================================================
+DIGITAL TWIN MODULE - ARCHITECTURAL FILE MANIFEST
+================================================================================
+
+1. BACKEND SCHEMAS & CONTRACTS
+--------------------------------------------------------------------------------
+backend/src/schemas/__init__.py
+  - Package marker exposing core contracts and validation models.
+
+backend/src/schemas/contracts.py
+  - Pydantic v2 domain models and enum specifications.
+  - Entities:
+      * PatientStayContract: Individual patient stay, vitals, trajectories,
+        temporal monotonicity (arrival <= triage <= bed <= discharge),
+        pulse pressure (sbp - dbp >= 15.0), and relational hour flooring.
+      * HourlyCensusContract: Departmental occupancy snapshots, active staffing
+        baselines (Day 35/10, Evening 30/8, Night 20/5), system queues, and
+        rolling 4-hour forecasts.
+      * BedTopologyContract: Physical asset tracking across ED bays, Ward beds,
+        and ICU units (with negative pressure and ventilator attributes).
+      * Enums: ShiftType, DispositionType, CareUnitType, BedStatus, StaffRole.
+
+2. STOCHASTIC DATA GENERATION (MIMIC-IV)
+--------------------------------------------------------------------------------
+backend/src/data_generator/__init__.py
+  - Package marker exposing empirical distribution samplers.
+
+backend/src/data_generator/mimic_distributions.py
+  - Standalone stochastic sampling engine calibrated on MIMIC-IV ED data.
+  - Entities:
+      * DistributionConfig: Dataclass capturing diurnal arrival parameters,
+        comorbidity baselines, vital bounds, and ESI disposition transition
+        probabilities.
+      * MIMICDistributionSampler: Generates arrival counts via NHPP Poisson,
+        coupled vitals (shock states, fever-induced tachycardia, hypoxic
+        tachypnea), individual patient trajectories, and hourly census batches.
+      * run_verification_suite(): Standalone 1,000-iteration invariant tester.
+
+3. DISCRETE-EVENT SIMULATION ENGINE (SIMPY)
+--------------------------------------------------------------------------------
+backend/src/simulation/__init__.py
+  - Package marker exposing the simulation runtime.
+
+backend/src/simulation/engine.py
+  - SimPy-based discrete-event simulation orchestrator.
+  - Entities:
+      * SimulationConfig: Configuration dataclass for run duration (1 to 168h),
+        unit capacities (ED <= 100, Ward <= 200, ICU <= 50), start time, seed.
+      * SimulationResults: Execution output container holding patient stays,
+        hourly census snapshots, final bed topology, and operational metrics.
+      * HospitalSimulationEngine: Manages simpy.Environment, bed resources
+        (ed_beds, ward_beds, icu_beds), arrival generator process, patient
+        pathway process (triage, queuing, transfers, discharge), and hourly
+        telemetry monitor.
+
+4. AUTOMATED REGRESSION & INVARIANT TESTS
+--------------------------------------------------------------------------------
+backend/tests/__init__.py
+  - Package marker for pytest discoverability.
+
+backend/tests/test_simulation.py
+  - Pytest verification suite enforcing system invariants and determinism:
+      * test_engine_determinism_identical_seeds
+      * test_engine_divergence_differing_seeds
+      * test_patient_stay_invariants (monotonicity, pulse pressure, IDs)
+      * test_hourly_census_invariants (shift mapping, capacity bounds)
+      * test_bed_topology_conservation_and_keys (occupancy foreign keys)
+      * test_system_dynamics_and_conservation (arrival vs discharge flow)
+      * test_simulation_config_boundary_validation (parameter clamping)
+
+5. PRODUCTION FASTAPI SERVER & RUNTIME CACHE
+--------------------------------------------------------------------------------
+backend/src/main.py
+  - FastAPI application serving simulation telemetry to frontend dashboards.
+  - Features:
+      * Lifespan context manager warming the in-memory cache with baseline 24h run.
+      * Thread-safe asynchronous execution (asyncio.to_thread) for SimPy runs.
+      * CORS middleware supporting Vite development servers.
+      * Endpoints:
+          - GET /: Health status and active cache timestamp.
+          - GET /api/simulation/data: Cached telemetry with optional stay filter.
+          - POST /api/simulation/run: Parameterized custom scenario execution.
+          - POST /api/simulation/reset: Reset to default baseline state.
+
+6. FRONTEND API INTEGRATION & REACT HOOKS
+--------------------------------------------------------------------------------
+frontend/src/api/useSimulationData.ts
+  - Strongly-typed TanStack Query hooks, fetch wrappers, and contract interfaces:
+      * Types: PatientStayContract, HourlyCensusContract, BedTopologyContract,
+        SimulationRunRequest, SimulationMetricsResponse, SimulationDataResponse.
+      * Hooks:
+          - useSimulationData(): Cached telemetry query with background refetch.
+          - useSimulationHealth(): Endpoint health check.
+          - useRunSimulation(): Mutation to execute custom scenario runs.
+          - useResetSimulation(): Mutation to restore baseline 24h run.
+
+7. FRONTEND USER INTERFACE & VISUALIZATION
+--------------------------------------------------------------------------------
+frontend/src/pages/SimulationView.tsx
+  - Interactive Digital Twin operations control center:
+      * Playback scrubber stepping through hourly simulation progression.
+      * Scenario presets (Standard Baseline, ED Surge, ICU Crisis, 72h Horizon).
+      * Animated pipeline canvas with dynamic flow nodes and particle motion.
+      * Analytical Tabs:
+          - Hour Snapshot: Real-time unit load, queues, active staffing.
+          - Bottlenecks & Capacities: Hourly load table and queue tracking.
+          - Clinical Trajectories: ESI 1-5 filterable patient encounters.
+          - Diurnal Staffing: Active clinicians vs. scheduled shift baselines.
+          - Contract Invariants: Live validation checks (pulse pressure, order).
+
+frontend/src/pages/Simulation.css
+  - Glassmorphic styling, responsive telemetry grids, ESI acuity tags,
+    progress meters, and keyframe animations for directional flow paths.
+================================================================================
+
+# hospital_digital_twin_issues.txt
+
+================================================================================
+HOSPITAL DIGITAL TWIN MODULE - DISCREPANCIES & AUDIT NOTES
+================================================================================
+
+[MODULE OVERVIEW]
+Represents the state of the hospital environment. This data is shared with the
+prediction and decision-making model.
+
+--------------------------------------------------------------------------------
+DISCREPANCIES AND BUGS TO ADDRESS
+--------------------------------------------------------------------------------
+
+1. Data Mapping Error (O2 Saturation)
+   - Location: SimulationView.tsx
+   - Problem: The PatientStay interface does not define o2_sat.
+   - Impact:  The "Physiological Invariants" table incorrectly renders the
+              patient's temperature ({stay.temp_c}) under the <th>O2 Sat</th>
+              column.
+
+2. Unused Payload Data (Over-fetching)
+   - Location: Backend SimulationDataResponse -> Frontend SimulationData
+   - Problem:  The backend returns a bed_topology array containing the status
+              of every physical bed, but the frontend SimulationData interface
+              omits this property entirely.
+   - Impact:  Data is downloaded over the network but never utilized by the UI.
+
+3. Missing Contract Fields in TypeScript
+   - Location: PatientStay and HourlyCensus interfaces
+   - Problem:  The frontend interfaces omit several fields sent by the backend:
+                 * patient_id
+                 * age
+                 * charlson_index
+                 * resp_rate
+                 * incoming_arrivals_next_4h
+   - Impact:  While TypeScript safely ignores extra JSON properties at runtime,
+              updating the interfaces will expose these fields for upcoming
+              dashboard expansions.

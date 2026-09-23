@@ -4,7 +4,7 @@ import { OverviewDashboard } from './pages/OverviewDashboard';
 import { OptimizationView } from './pages/OptimizationView';
 import { ExplainabilityView } from './pages/ExplainabilityView';
 import { SimulationView } from './pages/SimulationView';
-import { ForecastView } from './pages/ForecastView';
+import { ForecastDashboard } from './pages/ForecastDashboard';
 import { QueueStaffView } from './pages/QueueStaffView';
 import { SettingsView } from './pages/SettingsView';
 import { AppLayout } from './components/layout/AppLayout';
@@ -23,7 +23,7 @@ function App() {
           <Route path="optimization" element={<OptimizationView />} />
           <Route path="explainability" element={<ExplainabilityView />} />
           <Route path="simulation" element={<SimulationView />} />
-          <Route path="forecast" element={<ForecastView />} />
+          <Route path="forecast" element={<ForecastDashboard />} />
           <Route path="queue" element={<QueueStaffView />} />
           <Route path="settings" element={<SettingsView />} />
         </Route>

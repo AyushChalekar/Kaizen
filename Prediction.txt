@@ -1,0 +1,112 @@
+=========================================
+FILE EXTRACTION
+=========================================
+# extract_architecture.sh
+#!/bin/bash
+
+# Target output markdown file
+OUTPUT="extracted_architecture_context.md"
+
+echo "# System Architecture & Forecasting Module Extraction" > "$OUTPUT"
+echo "Generated on: $(date)" >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+
+# List of target files based on the system architecture specification
+FILES=(
+  "backend/src/schemas/prediction_contracts.py"
+  "backend/src/ml/model_pipeline.py"
+  "backend/tests/test_predictions.py"
+  "backend/src/api/predictions.py"
+  "frontend/src/api/useForecastData.ts"
+  "frontend/src/pages/ForecastDashboard.tsx"
+)
+
+for file in "${FILES[@]}"; do
+  echo "[LOG] Checking and extracting: $file"
+  
+  if [ -f "$file" ]; then
+    echo "## File: $file" >> "$OUTPUT"
+    
+    # Determine code block syntax highlighting based on extension
+    if [[ "$file" == *.ts || "$file" == *.tsx ]]; then
+      echo '```typescript' >> "$OUTPUT"
+    else
+      echo '```python' >> "$OUTPUT"
+    fi
+    
+    cat "$file" >> "$OUTPUT"
+    echo '```' >> "$OUTPUT"
+    echo "" >> "$OUTPUT"
+    echo "[LOG] Success: $file extracted."
+  else
+    echo "[ERROR] File not found or unreadable: $file" >&2
+    echo "## File: $file [MISSING]" >> "$OUTPUT"
+    echo '```text' >> "$OUTPUT"
+    echo "ERROR: File could not be found on disk during extraction." >> "$OUTPUT"
+    echo '```' >> "$OUTPUT"
+    echo "" >> "$OUTPUT"
+  fi
+done
+
+echo "[LOG] Extraction process finished. Output saved to $OUTPUT"
+=========================================
+SYSTEM ARCHITECTURE & FILE STRUCTURE
+=========================================
+
+1. backend/src/schemas/prediction_contracts.py
+- Foundational Pydantic models.
+- Uses custom @model_validator decorators to natively enforce strict biological invariants (e.g., minimum pulse pressure = 15.0 mmHg), temporal monotonicity for patient routing, and valid operational ranges.
+
+2. backend/src/ml/model_pipeline.py
+- Unified module for ingesting raw telemetry or batch .csv data.
+- Applies demographic encoding and scaling.
+- Executes predictive weights (XGBoost/LSTM) within a single execution graph.
+- Translates raw predicted occupancies into Day/Evening/Night shift staffing ratios.
+
+3. backend/tests/test_predictions.py
+- Core logic validation tests.
+- Runs simulated time-series arrays and mock .csv datasets through model_pipeline.py.
+- Asserts predictions preserve temporal monotonicity, staffing ratios align with census math, and prediction_contracts.py catches physiological rule violations.
+
+4. backend/src/api/predictions.py
+- FastAPI endpoints.
+- Handles standard single-state requests (e.g., /api/predictions/census) and manages inference caching.
+- Includes a dedicated bulk endpoint (/api/predictions/evaluate-baseline) that accepts .csv uploads, parses rows into Pydantic models, and processes them through the pipeline for baseline performance metrics.
+
+5. frontend/src/api/useForecastData.ts
+- Client-side data manager utilizing React Query/SWR.
+- Corresponds to schemas in prediction_contracts.py.
+- Establishes polling cadence for rolling forecasts and provides fallback states for backend latency during batch calculations.
+
+6. Frontend Core View (ForecastDashboard.tsx)
+- Single modular dashboard grid.
+- Subscribes to data streams from useForecastData.ts.
+- Dynamically renders widgets: peak queue charts, shift-staffing panels, and clinical escalation alerts.
+
+=========================================
+REQUIREMENTS
+=========================================
+
+RESOURCE UTILIZATION & BOTTLENECKS
+- Forecasts peak queue lengths for waiting patients.
+- Calculates average Length of Stay (LoS) in hours.
+- Predicts bed utilization percentages across Emergency Department (ED), medical-surgical wards, and Intensive Care Units (ICU).
+
+HOURLY CENSUS & STAFFING ALIGNMENT
+- Projects hourly patient arrivals, admissions, and discharges based on diurnal patterns and weekend adjustments.
+- Predicts required active nurse and physician headcounts for Day, Evening, and Night shifts based on occupancy.
+- Calculates a rolling 4-hour prescriptive arrival forecast.
+
+PATIENT FLOW & CLINICAL TRAJECTORIES
+- Maps sequential timestamp logic (arrival -> triage -> bed assignment -> discharge) enforcing strict monotonicity.
+- Anticipates routing paths (ED discharge, Ward admission, ICU placement).
+- Flags clinical escalations, including Ward-to-ICU transfers or sudden mechanical ventilation needs.
+
+PHYSIOLOGICAL & DEMOGRAPHIC MODELING
+- Synthesizes patient profiles: age, gender, Charlson Comorbidity Index, and one of 10 primary chief complaints.
+- Forecasts triage acuity using the Emergency Severity Index (ESI levels 1-5).
+- Predicts physiologically coupled vitals (heart rate, respiratory rate, temperature, O2 saturation) while enforcing strict biological invariants.
+
+=========================================
+File Specifics
+=========================================

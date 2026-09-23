@@ -14,7 +14,7 @@ import random
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Any, Final
-from schemas.contracts import (
+from src.schemas.contracts import (
     BedStatus,
     CareUnitType,
     DispositionType,

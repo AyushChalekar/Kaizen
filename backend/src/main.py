@@ -1,66 +1,37 @@
-# backend/src/main.py
-"""Production FastAPI application for Digital Twin hospital simulation platform.
+# src/main.py
+"""Main application entry point for the Digital Twin Hospital Operations API.
 
-Orchestrates discrete-event simulation runs, maintains thread-safe in-memory
-telemetry caches, and exposes validated endpoints for real-time frontend dashboards.
+Configures FastAPI, application lifespan, middleware, and routers using
+absolute imports with base path src.
 """
 
 from __future__ import annotations
 
 import asyncio
-import logging
-import sys
 from contextlib import asynccontextmanager
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+import logging
 from typing import Any, Final, Optional
 
 from fastapi import FastAPI, HTTPException, Query, status
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-# Ensure flexible module resolution across varying invocation contexts
-PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
-BACKEND_SRC = PROJECT_ROOT / "backend" / "src"
-for search_path in (PROJECT_ROOT, BACKEND_SRC):
-    if str(search_path) not in sys.path:
-        sys.path.insert(0, str(search_path))
-
-try:
-    from backend.src.schemas.contracts import (
-        BedTopologyContract,
-        HourlyCensusContract,
-        PatientStayContract,
-    )
-    from backend.src.simulation.engine import (
-        HospitalSimulationEngine,
-        SimulationConfig,
-        SimulationResults,
-    )
-except ImportError:
-    try:
-        from schemas.contracts import (
-            BedTopologyContract,
-            HourlyCensusContract,
-            PatientStayContract,
-        )
-        from simulation.engine import (
-            HospitalSimulationEngine,
-            SimulationConfig,
-            SimulationResults,
-        )
-    except ImportError:
-        from contracts import (
-            BedTopologyContract,
-            HourlyCensusContract,
-            PatientStayContract,
-        )
-        from engine import (
-            HospitalSimulationEngine,
-            SimulationConfig,
-            SimulationResults,
-        )
+from src.schemas.contracts import (
+    CareUnitType,
+    DispositionType,
+    ShiftType,
+    TIMESTAMP_FORMAT,
+    EXPECTED_TS_LENGTH,
+    MIN_PULSE_PRESSURE,
+    _parse_strict_timestamp,
+    HourlyCensusContract,
+    BedTopologyContract,
+    PatientStayContract,
+)
+from src.simulation.engine import HospitalSimulationEngine, SimulationConfig, SimulationResults
+from src.api.predictions import router as predictions_router
 
 # ---------------------------------------------------------------------------
 # Logging & Runtime Defaults
@@ -79,6 +50,8 @@ DEFAULT_START_DATETIME: Final[datetime] = datetime(2026, 9, 23, 0, 0, 0)
 # ---------------------------------------------------------------------------
 class SimulationRunRequest(BaseModel):
     """Payload to configure and execute a discrete-event simulation run."""
+
+    model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
 
     duration_hours: int = Field(
         default=24,
@@ -117,6 +90,8 @@ class SimulationRunRequest(BaseModel):
 class SimulationMetricsResponse(BaseModel):
     """Aggregated operational metrics for executive dashboards."""
 
+    model_config = ConfigDict(extra="forbid")
+
     total_arrivals: int = Field(..., description="Total patient arrivals simulated.")
     total_admissions: int = Field(..., description="Total inpatient ward and ICU admissions.")
     total_discharges: int = Field(..., description="Total discharged patient encounters.")
@@ -130,6 +105,8 @@ class SimulationMetricsResponse(BaseModel):
 
 class SimulationDataResponse(BaseModel):
     """Envelope wrapping telemetry, configuration, bed topology, and patient stays."""
+
+    model_config = ConfigDict(extra="forbid")
 
     status: str = Field(default="success", description="Response status message.")
     generated_at: str = Field(..., description="ISO 8601 timestamp of data generation.")
@@ -178,9 +155,9 @@ def _build_response_payload(
         generated_at=cache.generated_at,
         config=cache.config,
         metrics=metrics_model,
-        hourly_census=cache.results.hourly_census,  # These are now dicts, FastAPI will convert them
-        bed_topology=cache.results.bed_topology,    # These are now dicts
-        stays=cache.results.stays if include_stays else [], # These are now dicts
+        hourly_census=cache.results.hourly_census,
+        bed_topology=cache.results.bed_topology,
+        stays=cache.results.stays if include_stays else [],
     )
 
 
@@ -203,7 +180,6 @@ async def _run_and_update_cache(
             detail=f"Invalid simulation configuration: {str(exc)}",
         ) from exc
 
-    # Offload SimPy discrete-event execution to thread pool to preserve event loop
     results = await asyncio.to_thread(_execute_simulation_sync, sim_config)
     iso_timestamp = datetime.now(timezone.utc).isoformat()
 
@@ -340,6 +316,8 @@ async def reset_simulation() -> SimulationDataResponse:
     return await _run_and_update_cache(baseline_request)
 
 
+app.include_router(predictions_router)
+
 # ---------------------------------------------------------------------------
 # Direct Invocation Entrypoint
 # ---------------------------------------------------------------------------
@@ -347,7 +325,7 @@ if __name__ == "__main__":
     import uvicorn
 
     uvicorn.run(
-        "backend.src.main:app",
+        "src.main:app",
         host="0.0.0.0",
         port=8000,
         reload=True,

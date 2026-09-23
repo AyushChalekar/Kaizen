@@ -1,6 +1,6 @@
 // src/pages/SimulationView.tsx
 import React, { useState, useEffect } from 'react';
-import './Simulation.css';
+import './SimulationView.css';
 
 interface SimulationConfig {
   duration_hours: number;

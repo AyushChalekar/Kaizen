@@ -16,7 +16,7 @@ from typing import Any, Final, Optional
 
 import simpy
 
-from schemas.contracts import (
+from src.schemas.contracts import (
     BedStatus,
     BedTopologyContract,
     CareUnitType,
@@ -25,7 +25,7 @@ from schemas.contracts import (
     PatientStayContract,
     ShiftType,
 )
-from data_generator.mimic_distributions import (
+from src.data_generator.mimic_distributions import (
     DistributionConfig,
     MIMICDistributionSampler,
 )
