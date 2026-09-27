@@ -1,5 +1,6 @@
 // src/pages/SimulationView.tsx
 import React, { useState, useEffect } from 'react';
+import './SimulationView.css';
 
 interface SimulationConfig {
   duration_hours: number;
@@ -60,6 +61,49 @@ interface SimulationData {
   stays: PatientStay[];
   hourly_census: HourlyCensus[];
 }
+
+interface CustomScenarioForm {
+  duration_hours: number;
+  ed_capacity: number;
+  ward_capacity: number;
+  icu_capacity: number;
+  nurse_staffing_multiplier: number;
+  doctor_staffing_multiplier: number;
+  seed: number;
+}
+
+const CUSTOM_FORM_DEFAULTS: CustomScenarioForm = {
+  duration_hours: 24,
+  ed_capacity: 50,
+  ward_capacity: 150,
+  icu_capacity: 30,
+  nurse_staffing_multiplier: 1.0,
+  doctor_staffing_multiplier: 1.0,
+  seed: 42,
+};
+
+const CUSTOM_FORM_BOUNDS: Record<
+  keyof CustomScenarioForm,
+  { min: number; max: number; step: number }
+> = {
+  duration_hours: { min: 1, max: 168, step: 1 },
+  ed_capacity: { min: 1, max: 100, step: 1 },
+  ward_capacity: { min: 1, max: 200, step: 1 },
+  icu_capacity: { min: 1, max: 50, step: 1 },
+  nurse_staffing_multiplier: { min: 0.2, max: 1.0, step: 0.05 },
+  doctor_staffing_multiplier: { min: 0.2, max: 1.0, step: 0.05 },
+  seed: { min: 0, max: 999999, step: 1 },
+};
+
+const CUSTOM_FORM_LABELS: Record<keyof CustomScenarioForm, string> = {
+  duration_hours: 'Duration (hours)',
+  ed_capacity: 'ED Capacity (bays)',
+  ward_capacity: 'Ward Capacity (beds)',
+  icu_capacity: 'ICU Capacity (beds)',
+  nurse_staffing_multiplier: 'Nurse Staffing (0.2–1.0)',
+  doctor_staffing_multiplier: 'Doctor Staffing (0.2–1.0)',
+  seed: 'RNG Seed',
+};
 
 interface ScenarioPreset {
   id: string;
@@ -122,6 +166,9 @@ export function SimulationView() {
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedScenarioId, setSelectedScenarioId] = useState<string>('baseline');
+  const [showCustomForm, setShowCustomForm] = useState<boolean>(false);
+  const [customForm, setCustomForm] = useState<CustomScenarioForm>(CUSTOM_FORM_DEFAULTS);
+  const [customFormErrors, setCustomFormErrors] = useState<string[]>([]);
 
   const fetchSimulation = async (endpoint: string, method: string = 'GET', body?: any) => {
     setLoading(true);
@@ -157,6 +204,47 @@ export function SimulationView() {
     } else {
       fetchSimulation('/api/simulation/run', 'POST', scenario.payload);
     }
+  };
+
+  const handleCustomFieldChange = (field: keyof CustomScenarioForm, rawValue: string) => {
+    const parsed = Number(rawValue);
+    setCustomForm((prev) => ({
+      ...prev,
+      [field]: Number.isNaN(parsed) ? prev[field] : parsed,
+    }));
+  };
+
+  const validateCustomForm = (form: CustomScenarioForm): string[] => {
+    const errors: string[] = [];
+    (Object.keys(CUSTOM_FORM_BOUNDS) as Array<keyof CustomScenarioForm>).forEach((key) => {
+      const { min, max } = CUSTOM_FORM_BOUNDS[key];
+      const value = form[key];
+      if (Number.isNaN(value) || value < min || value > max) {
+        errors.push(`${CUSTOM_FORM_LABELS[key]} must be between ${min} and ${max}.`);
+      }
+    });
+    return errors;
+  };
+
+  const runCustomScenario = () => {
+    const errors = validateCustomForm(customForm);
+    setCustomFormErrors(errors);
+    if (errors.length > 0) return;
+
+    fetchSimulation('/api/simulation/run', 'POST', {
+      duration_hours: Math.round(customForm.duration_hours),
+      ed_capacity: Math.round(customForm.ed_capacity),
+      ward_capacity: Math.round(customForm.ward_capacity),
+      icu_capacity: Math.round(customForm.icu_capacity),
+      nurse_staffing_multiplier: customForm.nurse_staffing_multiplier,
+      doctor_staffing_multiplier: customForm.doctor_staffing_multiplier,
+      seed: Math.round(customForm.seed),
+    });
+  };
+
+  const resetCustomForm = () => {
+    setCustomForm(CUSTOM_FORM_DEFAULTS);
+    setCustomFormErrors([]);
   };
 
   if (loading) return <div className="sim-container loading">Executing Discrete-Event Simulation...</div>;
@@ -444,10 +532,59 @@ tr:hover {
           <button className="btn-run-scenario" onClick={runSelectedScenario}>
             Run Selected Test Case
           </button>
+          <button
+            className="btn-toggle-custom"
+            onClick={() => setShowCustomForm((prev) => !prev)}
+          >
+            {showCustomForm ? 'Hide Custom Scenario' : 'Custom Scenario'}
+          </button>
         </div>
         <p className="scenario-description">
           {SCENARIOS.find((s) => s.id === selectedScenarioId)?.description}
         </p>
+
+        {showCustomForm && (
+          <div className="custom-scenario-panel">
+            <h2>Custom Scenario — Enter Your Own Values</h2>
+            <p className="panel-desc">
+              Type in any combination of parameters and run a one-off simulation.
+              Same validation rules as the preset test cases apply.
+            </p>
+            <div className="custom-form-grid">
+              {(Object.keys(CUSTOM_FORM_DEFAULTS) as Array<keyof CustomScenarioForm>).map((field) => (
+                <div className="custom-form-item" key={field}>
+                  <label htmlFor={`custom-${field}`}>{CUSTOM_FORM_LABELS[field]}</label>
+                  <input
+                    id={`custom-${field}`}
+                    type="number"
+                    min={CUSTOM_FORM_BOUNDS[field].min}
+                    max={CUSTOM_FORM_BOUNDS[field].max}
+                    step={CUSTOM_FORM_BOUNDS[field].step}
+                    value={customForm[field]}
+                    onChange={(e) => handleCustomFieldChange(field, e.target.value)}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {customFormErrors.length > 0 && (
+              <ul className="custom-form-errors">
+                {customFormErrors.map((err) => (
+                  <li key={err}>{err}</li>
+                ))}
+              </ul>
+            )}
+
+            <div className="custom-form-buttons">
+              <button className="btn-run-custom" onClick={runCustomScenario}>
+                Run Custom Scenario
+              </button>
+              <button className="btn-reset-custom" onClick={resetCustomForm}>
+                Reset to Defaults
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Active Conditions Panel */}
