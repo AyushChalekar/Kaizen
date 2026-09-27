@@ -1,26 +1,104 @@
-import React from 'react';
-import { 
-  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer 
+import React, { useEffect, useState } from 'react';
+import {
+  AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer
 } from 'recharts';
 import { Users, UserPlus, Clock } from 'lucide-react';
 import './Dashboard.css';
 
-const occupancyData = [
-  { time: '08:00', ed: 45, ward: 180, icu: 15 },
-  { time: '09:00', ed: 52, ward: 182, icu: 16 },
-  { time: '10:00', ed: 68, ward: 185, icu: 16 },
-  { time: '11:00', ed: 74, ward: 188, icu: 17 },
-  { time: '12:00', ed: 82, ward: 190, icu: 18 },
-  { time: '13:00', ed: 78, ward: 195, icu: 19 },
-  { time: '14:00', ed: 85, ward: 198, icu: 19 },
-];
+interface HourlyCensus {
+  hour: number;
+  ed_occupancy: number;
+  ward_occupancy: number;
+  icu_occupancy: number;
+  active_nurses: number;
+  active_doctors: number;
+  patients_in_queue: number;
+  incoming_arrivals_next_4h: number;
+}
+
+interface SimulationConfig {
+  ed_capacity: number;
+  ward_capacity: number;
+  icu_capacity: number;
+}
+
+interface SimulationMetrics {
+  average_los_hours: number;
+  peak_queue_length: number;
+}
+
+interface SimulationDataResponse {
+  generated_at: string;
+  config: SimulationConfig;
+  metrics: SimulationMetrics;
+  hourly_census: HourlyCensus[];
+}
 
 export function OverviewDashboard() {
+  const [data, setData] = useState<SimulationDataResponse | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchOverviewSource = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const response = await fetch(
+          'http://localhost:8000/api/simulation/data?include_stays=false'
+        );
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+        const json = await response.json();
+        setData(json);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchOverviewSource();
+  }, []);
+
+  // Occupancy status thresholds, shared by all three departments.
+  const occupancyStatus = (pct: number): { label: string; cssClass: string } => {
+    if (pct >= 90) return { label: 'Critical', cssClass: 'critical' };
+    if (pct >= 70) return { label: 'High', cssClass: 'warning' };
+    return { label: 'Normal', cssClass: 'normal' };
+  };
+
+  const latest = data && data.hourly_census.length > 0
+    ? data.hourly_census[data.hourly_census.length - 1]
+    : null;
+
+  const edPct = latest && data ? Math.round((latest.ed_occupancy / data.config.ed_capacity) * 100) : 0;
+  const wardPct = latest && data ? Math.round((latest.ward_occupancy / data.config.ward_capacity) * 100) : 0;
+  const icuPct = latest && data ? Math.round((latest.icu_occupancy / data.config.icu_capacity) * 100) : 0;
+
+  const edStatus = occupancyStatus(edPct);
+  const wardStatus = occupancyStatus(wardPct);
+  const icuStatus = occupancyStatus(icuPct);
+
+  // Last 6 simulated hours for the trend chart (or fewer if the run is shorter).
+  const trendData = data
+    ? data.hourly_census.slice(-6).map((c) => ({
+        time: `${c.hour.toString().padStart(2, '0')}:00`,
+        ed: c.ed_occupancy,
+        ward: c.ward_occupancy,
+      }))
+    : [];
+
+  if (loading) return <div className="dashboard loading">Loading Overview...</div>;
+  if (error) return <div className="dashboard error">Connection Error: {error}</div>;
+  if (!data || !latest) return null;
+
   return (
     <div className="dashboard">
       <div className="dashboard-header">
         <h1>Overview</h1>
-        <p>Real-time hospital occupancy and staffing metrics.</p>
+        <p>
+          Reflecting last simulation run &bull; Generated: {new Date(data.generated_at).toLocaleString()}
+        </p>
       </div>
 
       {/* Occupancy Gauges Section */}
@@ -28,39 +106,39 @@ export function OverviewDashboard() {
         <div className="card glass-card">
           <div className="card-header">
             <h3>ED Occupancy</h3>
-            <span className="status-indicator warning">High</span>
+            <span className={`status-indicator ${edStatus.cssClass}`}>{edStatus.label}</span>
           </div>
           <div className="progress-circle-container">
-            <div className="progress-circle warning-circle">
-              <span className="percentage">85%</span>
+            <div className={`progress-circle ${edStatus.cssClass}-circle`}>
+              <span className="percentage">{edPct}%</span>
             </div>
-            <p>85 / 100 Beds</p>
+            <p>{latest.ed_occupancy} / {data.config.ed_capacity} Beds</p>
           </div>
         </div>
 
         <div className="card glass-card">
           <div className="card-header">
             <h3>Ward Occupancy</h3>
-            <span className="status-indicator normal">Normal</span>
+            <span className={`status-indicator ${wardStatus.cssClass}`}>{wardStatus.label}</span>
           </div>
           <div className="progress-circle-container">
-            <div className="progress-circle normal-circle">
-              <span className="percentage">72%</span>
+            <div className={`progress-circle ${wardStatus.cssClass}-circle`}>
+              <span className="percentage">{wardPct}%</span>
             </div>
-            <p>198 / 275 Beds</p>
+            <p>{latest.ward_occupancy} / {data.config.ward_capacity} Beds</p>
           </div>
         </div>
 
         <div className="card glass-card">
           <div className="card-header">
             <h3>ICU Occupancy</h3>
-            <span className="status-indicator critical">Critical</span>
+            <span className={`status-indicator ${icuStatus.cssClass}`}>{icuStatus.label}</span>
           </div>
           <div className="progress-circle-container">
-            <div className="progress-circle critical-circle">
-              <span className="percentage">95%</span>
+            <div className={`progress-circle ${icuStatus.cssClass}-circle`}>
+              <span className="percentage">{icuPct}%</span>
             </div>
-            <p>19 / 20 Beds</p>
+            <p>{latest.icu_occupancy} / {data.config.icu_capacity} Beds</p>
           </div>
         </div>
       </div>
@@ -74,7 +152,7 @@ export function OverviewDashboard() {
             </div>
             <div className="stat-content">
               <h4>Active Staff</h4>
-              <p className="stat-value">42 <span className="stat-sub">Nurses</span> &bull; 18 <span className="stat-sub">Doctors</span></p>
+              <p className="stat-value">{latest.active_nurses} <span className="stat-sub">Nurses</span> &bull; {latest.active_doctors} <span className="stat-sub">Doctors</span></p>
             </div>
           </div>
 
@@ -84,7 +162,7 @@ export function OverviewDashboard() {
             </div>
             <div className="stat-content">
               <h4>Patients in Queue</h4>
-              <p className="stat-value">24 <span className="stat-sub">Avg Wait: 45m</span></p>
+              <p className="stat-value">{latest.patients_in_queue} <span className="stat-sub">Avg LOS: {data.metrics.average_los_hours.toFixed(1)}h</span></p>
             </div>
           </div>
 
@@ -94,7 +172,7 @@ export function OverviewDashboard() {
             </div>
             <div className="stat-content">
               <h4>Expected Arrivals (4h)</h4>
-              <p className="stat-value">~35 <span className="stat-sub">Patients</span></p>
+              <p className="stat-value">~{latest.incoming_arrivals_next_4h} <span className="stat-sub">Patients</span></p>
             </div>
           </div>
         </div>
@@ -104,7 +182,7 @@ export function OverviewDashboard() {
           <h3>Occupancy Trend (Last 6 Hours)</h3>
           <div className="chart-container">
             <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={occupancyData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <AreaChart data={trendData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorEd" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3}/>
